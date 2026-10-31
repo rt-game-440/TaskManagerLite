@@ -4,10 +4,11 @@
 //! 新出现的进程交给后台线程读一次，结果按进程缓存到进程退出，不进采样热路径。
 
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::mpsc::{self, Sender};
 
-use tml_core::{DetailColumn, Process, ProcessKey, StaticInfo, StaticReader};
+use tml_core::{DetailColumn, Process, ProcessKey, SigSlot, Signature, StaticInfo, StaticReader};
 
 use crate::format;
 
@@ -39,6 +40,7 @@ pub fn title(c: DetailColumn) -> &'static str {
         DetailColumn::EcoMode => "效率模式",
         DetailColumn::Services => "服务",
         DetailColumn::Network => "网络",
+        DetailColumn::Signature => "签名",
     }
 }
 
@@ -49,6 +51,7 @@ pub fn default_width(c: DetailColumn) -> f32 {
         DetailColumn::Elevated | DetailColumn::Handles => 76.0,
         DetailColumn::EcoMode => 88.0,
         DetailColumn::Network => 96.0,
+        DetailColumn::Signature => 200.0,
         DetailColumn::Services => 180.0,
         DetailColumn::Status | DetailColumn::Priority | DetailColumn::CpuTime => 88.0,
         DetailColumn::WorkingSet | DetailColumn::PeakWorkingSet | DetailColumn::Commit => 108.0,
@@ -147,6 +150,7 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) ->
         DetailColumn::Company => text(|i| i.company.as_deref()),
         DetailColumn::Gpu => format::gpu_percent(gpu),
         DetailColumn::Network => format::net_rate(net),
+        DetailColumn::Signature => signature_text(info),
         // 没有读数（进程打不开或系统不支持）留空；应用行显示应用自身进程的状态。
         DetailColumn::EcoMode => match p.eco_mode {
             Some(true) => "已启用".into(),
@@ -154,6 +158,19 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) ->
             None => String::new(),
         },
         DetailColumn::Services => p.services.as_deref().map(services_text).unwrap_or_default(),
+    }
+}
+
+/// “签名”列文字：校验没完成（含静态信息还没读到）显示“…”，读不到路径的进程留空。
+pub fn signature_text(info: Option<&StaticInfo>) -> String {
+    let Some(info) = info else { return "…".into() };
+    let Some(slot) = &info.signature else { return String::new() };
+    match slot.get() {
+        None => "…".into(),
+        Some(Signature::Signed(name)) if name.is_empty() => "已验证".into(),
+        Some(Signature::Signed(name)) => format!("已验证 · {name}"),
+        Some(Signature::Unsigned) => "未签名".into(),
+        Some(Signature::Invalid) => "校验失败".into(),
     }
 }
 
@@ -197,6 +214,8 @@ pub struct Shown {
 pub struct InfoCache {
     /// `None` 表示已交给后台、结果未到。
     procs: HashMap<ProcessKey, Option<Arc<StaticInfo>>>,
+    /// 已交给签名校验线程的路径：每个路径只校验一次。
+    sig_queued: HashSet<PathBuf>,
 }
 
 impl InfoCache {
@@ -237,6 +256,19 @@ impl InfoCache {
     /// 不再显示静态列时释放全部缓存。
     pub fn clear(&mut self) {
         self.procs.clear();
+        self.sig_queued.clear();
+    }
+
+    /// 还没交给校验线程的路径及其结果槽位（每个路径只返回一次）。
+    pub fn pending_signatures(&mut self) -> Vec<(PathBuf, SigSlot)> {
+        let mut out = Vec::new();
+        for info in self.procs.values().flatten() {
+            let (Some(path), Some(slot)) = (&info.path, &info.signature) else { continue };
+            if slot.get().is_none() && self.sig_queued.insert(path.clone()) {
+                out.push((path.clone(), slot.clone()));
+            }
+        }
+        out
     }
 
     #[cfg(test)]
@@ -282,6 +314,40 @@ impl InfoWorker {
     }
 }
 
+/// 签名校验线程：最低优先级、单线程串行，不与采样和界面抢 CPU。
+#[derive(Clone)]
+pub struct SigWorker {
+    tx: Sender<Vec<(PathBuf, SigSlot)>>,
+}
+
+impl SigWorker {
+    /// `notify` 在后台线程上每校验完一个路径调用一次，负责（合并后）通知界面线程刷新。
+    pub fn spawn(notify: impl Fn() + Send + 'static) -> Self {
+        let (tx, rx) = mpsc::channel::<Vec<(PathBuf, SigSlot)>>();
+        std::thread::Builder::new()
+            .name("signature".into())
+            .spawn(move || {
+                tml_core::lower_current_thread_priority();
+                while let Ok(batch) = rx.recv() {
+                    for (path, slot) in batch {
+                        slot.set(tml_core::verify_signature(&path));
+                        notify();
+                        // 稍作停顿，让出 CPU 给采样与界面。
+                        std::thread::sleep(std::time::Duration::from_millis(2));
+                    }
+                }
+            })
+            .expect("无法创建签名校验线程");
+        Self { tx }
+    }
+
+    pub fn verify(&self, batch: Vec<(PathBuf, SigSlot)>) {
+        if !batch.is_empty() {
+            let _ = self.tx.send(batch);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -291,6 +357,26 @@ mod tests {
             pid,
             create_time: pid as u64,
         }
+    }
+
+    #[test]
+    fn signatures_are_queued_once_per_path_and_texts_follow_state() {
+        let slot = SigSlot::default();
+        let info = StaticInfo { path: Some("C:/a.exe".into()), signature: Some(slot.clone()), ..Default::default() };
+        let mut c = InfoCache::default();
+        c.track([key(1), key(2)]);
+        assert!(c.loaded(key(1), info.clone()));
+        assert!(c.loaded(key(2), info.clone()));
+        assert_eq!(c.pending_signatures().len(), 1);
+        assert!(c.pending_signatures().is_empty());
+        assert_eq!(signature_text(None), "…");
+        assert_eq!(signature_text(Some(&info)), "…");
+        assert_eq!(signature_text(Some(&StaticInfo::default())), "");
+        slot.set(Signature::Signed("Microsoft Windows".into()));
+        assert_eq!(signature_text(Some(&info)), "已验证 · Microsoft Windows");
+        let other = SigSlot::default();
+        other.set(Signature::Unsigned);
+        assert_eq!(signature_text(Some(&StaticInfo { signature: Some(other), ..Default::default() })), "未签名");
     }
 
     #[test]

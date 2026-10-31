@@ -23,6 +23,7 @@ pub use network::{ConnectionKind, NetworkAdapter};
 mod procctl;
 mod procinfo;
 mod sampler;
+mod signature;
 pub mod services;
 mod runtask;
 mod shellops;
@@ -55,6 +56,7 @@ pub use procctl::{
 pub use procinfo::{command_line, image_path, image_path_of};
 pub use sampler::{DiskSource, Sample, Sampler, Scope};
 pub use runtask::{Command as RunCommand, RunError, expand_env, parse_command, parse_command_with, run_task};
+pub use signature::{SigSlot, Signature, lower_current_thread_priority, verify as verify_signature};
 pub use shellops::{ShellError, reveal_in_explorer, search_online, search_url, show_properties};
 pub use snapshot::{Peaks, Process, ProcessKey, ProcessSnapshot};
 pub use system::SystemMetrics;

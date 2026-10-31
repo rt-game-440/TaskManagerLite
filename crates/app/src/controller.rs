@@ -102,6 +102,7 @@ pub struct Controller {
     icon_worker: IconWorker,
     /// 静态信息（用户名、路径等）的后台读取线程，第一次显示这类列时才创建。
     info_worker: OnceCell<InfoWorker>,
+    sig_worker: OnceCell<crate::details::SigWorker>,
     /// 显示中的详细信息列（表头）与列选择菜单的选项；原地更新，见 `columns::assign`。
     detail_headers: Rc<VecModel<DetailHeader>>,
     detail_choices: Rc<VecModel<DetailChoice>>,
@@ -342,6 +343,7 @@ impl Controller {
                 });
             }),
             info_worker: OnceCell::new(),
+            sig_worker: OnceCell::new(),
             detail_headers: Rc::new(VecModel::default()),
             detail_choices: Rc::new(VecModel::default()),
             icon_px: Cell::new(0),

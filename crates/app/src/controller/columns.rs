@@ -1,13 +1,14 @@
 //! 进程列表的“详细信息”列：列选择、列宽，以及静态信息（用户名、路径等）的按需读取。
 
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use tml_core::{DetailColumn, SortKey};
 
 use super::{Controller, State};
 use crate::sampling::Command;
-use crate::details::{self, InfoWorker, Shown, needs_eco, needs_gpu, needs_services};
+use crate::details::{self, InfoWorker, SigWorker, Shown, needs_eco, needs_gpu, needs_services};
 use crate::{AppWindow, Columns, DetailChoice, DetailHeader};
 
 /// 详细信息列在排序序号中的起点：序号 = 100 + 列在 `DetailColumn::ALL` 中的位置。
@@ -58,6 +59,9 @@ fn assign<T: Clone + PartialEq + 'static>(m: &VecModel<T>, v: Vec<T>) {
         }
     }
 }
+
+/// 签名结果刷新通知已投递、界面线程尚未处理。
+static SIG_REFRESH_QUEUED: AtomicBool = AtomicBool::new(false);
 
 /// 是否显示了需要读取静态信息的列。
 fn needs_static(shown: &[Shown]) -> bool {
@@ -129,6 +133,7 @@ impl Controller {
         }
         self.sync_columns();
         self.track_info();
+        self.track_signatures();
         self.refresh_rows();
     }
 
@@ -204,6 +209,58 @@ impl Controller {
         worker.read(fresh);
     }
 
+    /// 显示了“签名”列时，把还没校验的路径交给签名校验线程（列没显示就不校验）。
+    pub(super) fn track_signatures(&self) {
+        let batch = {
+            let mut guard = self.state.borrow_mut();
+            let s = &mut *guard;
+            if !s.details.iter().any(|d| d.column == DetailColumn::Signature) {
+                return;
+            }
+            s.info.pending_signatures()
+        };
+        if batch.is_empty() {
+            return;
+        }
+        let worker = self.sig_worker.get_or_init(|| {
+            SigWorker::spawn(|| {
+                // 界面线程还没处理上一次通知时不再重复投递：启动时几百个路径的结果合并成少数几次刷新。
+                if SIG_REFRESH_QUEUED.swap(true, Ordering::AcqRel) {
+                    return;
+                }
+                let _ = slint::invoke_from_event_loop(|| {
+                    SIG_REFRESH_QUEUED.store(false, Ordering::Release);
+                    crate::CONTROLLER.with(|c| {
+                        if let Some(c) = c.borrow().as_ref() {
+                            c.refresh_rows();
+                            c.dump_signatures();
+                        }
+                    })
+                });
+            })
+        });
+        worker.verify(batch);
+    }
+
+    /// 自动化验收钩子：环境变量 `TML_SIGNATURE_DUMP=<文件>` 时，每次签名结果刷新把已校验的进程
+    /// 写成制表符分隔文本（PID、结果、签名者），路径与进程名不写入。
+    fn dump_signatures(&self) {
+        let Some(file) = std::env::var_os("TML_SIGNATURE_DUMP") else { return };
+        let s = self.state.borrow();
+        let mut out = String::new();
+        for p in &s.snapshot.processes {
+            let Some(sig) = p.info.as_ref().and_then(|i| i.signature.as_ref()).and_then(|x| x.get()) else { continue };
+            let (kind, name) = match sig {
+                tml_core::Signature::Signed(n) => ("signed", n.as_str()),
+                tml_core::Signature::Unsigned => ("unsigned", ""),
+                tml_core::Signature::Invalid => ("invalid", ""),
+            };
+            out.push_str(&format!("{}	{kind}	{name}
+", p.key.pid));
+        }
+        let _ = std::fs::write(file, out);
+    }
+
     /// 后台读到的一批静态信息。
     fn on_info(&self, batch: Vec<(tml_core::ProcessKey, Option<tml_core::StaticInfo>)>) {
         let changed = {
@@ -218,6 +275,7 @@ impl Controller {
             changed
         };
         if changed {
+            self.track_signatures();
             self.refresh_rows();
         }
     }
