@@ -44,6 +44,10 @@ msgstr "CPU {0}"
 msgid "CPU {}"
 msgstr "CPU {}"
 
+#: ui/process-details-window.slint:91
+msgid "CPU 时间"
+msgstr "CPU time"
+
 #: ui/settings-page.slint:319
 msgid "ETW 会话未能启动，暂用系统 I/O 计数"
 msgstr "The ETW session could not start; using system I/O counters for now"
@@ -63,6 +67,10 @@ msgstr "{0} is a critical process. Ending it may crash the system or sign you ou
 #: ui/affinity.slint:79
 msgid "{} (PID {}) 允许运行在以下逻辑处理器上。"
 msgstr "{} (PID {}) is allowed to run on these logical processors."
+
+#: ui/process-details-window.slint:93
+msgid "上下文切换"
+msgstr "Context switches"
 
 #: ui/mini-window.slint:81
 msgid "不透明度"
@@ -100,13 +108,17 @@ msgstr "Exit anyway?"
 msgid "以管理员权限创建此任务"
 msgstr "Create this task with administrator privileges"
 
-#: ui/app.slint:288 ui/process-details-window.slint:70
+#: ui/app.slint:288 ui/process-details-window.slint:76
 msgid "以管理员身份重启"
 msgstr "Restart as administrator"
 
 #: ui/app.slint:181 ui/mini-window.slint:15
 msgid "任务管理器 Lite"
 msgstr "Task Manager Lite"
+
+#: ui/process-details-window.slint:89
+msgid "优先级"
+msgstr "Priority"
 
 #: ui/process-page.slint:359
 msgid "低"
@@ -136,7 +148,7 @@ msgstr "Select none"
 msgid "全选"
 msgstr "Select all"
 
-#: ui/process-details-window.slint:87
+#: ui/process-details-window.slint:128
 msgid "公司"
 msgstr "Company"
 
@@ -220,11 +232,11 @@ msgstr "Cancel"
 msgid "取消置顶"
 msgstr "Unpin from top"
 
-#: ui/process-details-window.slint:53
+#: ui/process-details-window.slint:59
 msgid "句柄"
 msgstr "Handles"
 
-#: ui/process-details-window.slint:82 ui/process-page.slint:14 ui/services-page.slint:101
+#: ui/process-details-window.slint:123 ui/process-page.slint:14 ui/services-page.slint:101
 msgid "名称"
 msgstr "Name"
 
@@ -256,7 +268,7 @@ msgstr "Press while in the search box."
 msgid "在线搜索进程名"
 msgstr "Search online for process name"
 
-#: ui/process-details-window.slint:84
+#: ui/process-details-window.slint:125
 msgid "基址"
 msgstr "Base address"
 
@@ -276,7 +288,7 @@ msgstr "Copy path"
 msgid "外观"
 msgstr "Appearance"
 
-#: ui/process-details-window.slint:85
+#: ui/process-details-window.slint:126
 msgid "大小"
 msgstr "Size"
 
@@ -480,7 +492,7 @@ msgstr "Start this program instead when Task Manager is opened with Ctrl+Shift+E
 msgid "按类型显示行首色条"
 msgstr "Show a colored bar by process type"
 
-#: ui/process-details-window.slint:86
+#: ui/process-details-window.slint:127
 msgid "描述"
 msgstr "Description"
 
@@ -592,7 +604,7 @@ msgstr "Source"
 msgid "树形"
 msgstr "Tree"
 
-#: ui/process-details-window.slint:53
+#: ui/process-details-window.slint:59
 msgid "模块"
 msgstr "Modules"
 
@@ -656,7 +668,7 @@ msgstr "Clear filter"
 msgid "点关闭按钮时隐藏到通知区域；单击托盘图标恢复，右键托盘图标退出。"
 msgstr "Clicking the close button hides the window to the notification area. Click the tray icon to restore it, or right-click it to exit."
 
-#: ui/connections-page.slint:44 ui/services-page.slint:104 ui/startup-page.slint:41
+#: ui/connections-page.slint:44 ui/process-details-window.slint:90 ui/services-page.slint:104
 msgid "状态"
 msgstr "Status"
 
@@ -724,9 +736,13 @@ msgstr "System account"
 msgid "系统集成"
 msgstr "System integration"
 
-#: ui/process-details-window.slint:53
+#: ui/process-details-window.slint:59
 msgid "线程"
 msgstr "Threads"
+
+#: ui/process-details-window.slint:88
+msgid "线程 ID"
+msgstr "Thread ID"
 
 #: ui/services-page.slint:106
 msgid "组"
@@ -808,6 +824,10 @@ msgstr "Details…"
 msgid "语言"
 msgstr "Language"
 
+#: ui/process-details-window.slint:92
+msgid "起始地址"
+msgstr "Start address"
+
 #: ui/settings-page.slint:228 ui/settings-page.slint:239
 msgid "跟随系统"
 msgstr "Follow system"
@@ -820,7 +840,7 @@ msgstr "When set to follow system, the Windows display language decides: Chinese
 msgid "跟随系统时随 Windows 的深浅色设置自动切换。"
 msgstr "When following the system, switches automatically with the Windows light/dark setting."
 
-#: ui/process-details-window.slint:83
+#: ui/process-details-window.slint:124
 msgid "路径"
 msgstr "Path"
 
@@ -880,7 +900,7 @@ msgstr "Process list"
 msgid "进程名"
 msgstr "Process name"
 
-#: ui/process-details-window.slint:11
+#: ui/process-details-window.slint:14
 msgid "进程详细信息"
 msgstr "Process details"
 

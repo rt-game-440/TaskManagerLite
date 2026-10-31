@@ -1,8 +1,13 @@
 //! `NtQuerySystemInformation(SystemProcessInformation)` 的原始读取。
 
-use windows::Wdk::System::SystemInformation::{NtQuerySystemInformation, SystemProcessInformation};
+use windows::Wdk::System::SystemInformation::{
+    NtQuerySystemInformation, SYSTEM_INFORMATION_CLASS, SystemProcessInformation,
+};
 
 use crate::cpu::ProcessTotals;
+
+/// `SYSTEM_EXTENDED_PROCESS_INFORMATION`：windows crate 没有公开这个常量。
+const SYSTEM_EXTENDED_PROCESS_INFORMATION: SYSTEM_INFORMATION_CLASS = SYSTEM_INFORMATION_CLASS(57);
 
 const STATUS_INFO_LENGTH_MISMATCH: i32 = 0xC000_0004_u32 as i32;
 
@@ -79,6 +84,7 @@ struct SystemProcessInfo {
 
 /// SYSTEM_THREAD_INFORMATION：紧跟在每个进程条目之后，共 `number_of_threads` 个。
 #[repr(C)]
+#[derive(Clone, Copy)]
 struct SystemThreadInfo {
     kernel_time: i64,
     user_time: i64,
@@ -98,10 +104,14 @@ struct SystemThreadInfo {
 const THREAD_STATE_WAITING: u32 = 5;
 const WAIT_REASON_SUSPENDED: u32 = 5;
 
+/// 线程是否因挂起而等待（进程“已挂起”与线程页签的“已挂起”共用这个判定）。
+pub(crate) fn thread_is_suspended(state: u32, wait_reason: u32) -> bool {
+    state == THREAD_STATE_WAITING && wait_reason == WAIT_REASON_SUSPENDED
+}
+
 /// 进程是否处于挂起状态：至少有一个线程，且所有线程都在因挂起而等待。
 fn all_suspended(threads: &[SystemThreadInfo]) -> bool {
-    !threads.is_empty()
-        && threads.iter().all(|t| t.thread_state == THREAD_STATE_WAITING && t.wait_reason == WAIT_REASON_SUSPENDED)
+    !threads.is_empty() && threads.iter().all(|t| thread_is_suspended(t.thread_state, t.wait_reason))
 }
 
 /// 复用缓冲区的进程枚举器。
@@ -197,6 +207,92 @@ impl ProcessQuery {
         }
         self.totals = totals;
         out
+    }
+}
+
+/// SYSTEM_EXTENDED_THREAD_INFORMATION（`SYSTEM_EXTENDED_PROCESS_INFORMATION`，类 57）：基础线程信息之后多了栈与 Win32 起始地址。
+#[repr(C)]
+struct SystemExtendedThreadInfo {
+    base: SystemThreadInfo,
+    stack_base: usize,
+    stack_limit: usize,
+    win32_start_address: usize,
+    teb_base: usize,
+    reserved: [usize; 3],
+}
+
+/// 一个线程在某一时刻的原始信息（#90）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RawThread {
+    pub tid: u32,
+    /// 当前优先级与基本优先级。
+    pub priority: i32,
+    pub base_priority: i32,
+    /// KTHREAD_STATE 与 KWAIT_REASON 的原始值。
+    pub state: u32,
+    pub wait_reason: u32,
+    /// 用户态 + 内核态 CPU 时间，100ns 单位。
+    pub cpu_time: u64,
+    pub context_switches: u32,
+    /// Win32 起始地址（线程函数）；读不到时退回内核起始地址。
+    pub start_address: u64,
+}
+
+/// 读取指定进程的线程数组；进程不存在或创建时间不符（PID 被复用）返回 `Ok(None)`。
+pub(crate) fn threads_of(pid: u32, create_time: u64) -> windows::core::Result<Option<Vec<RawThread>>> {
+    let mut buffer: Vec<u64> = vec![0; 512 * 1024 / 8];
+    loop {
+        let byte_len = (buffer.len() * 8) as u32;
+        let mut needed = 0u32;
+        // SAFETY: 缓冲区长度与传入的字节数一致。
+        let status = unsafe {
+            NtQuerySystemInformation(SYSTEM_EXTENDED_PROCESS_INFORMATION, buffer.as_mut_ptr().cast(), byte_len, &mut needed)
+        };
+        if status.0 == STATUS_INFO_LENGTH_MISMATCH {
+            let want = (needed as usize).max(byte_len as usize) * 3 / 2;
+            buffer.resize(want.div_ceil(8), 0);
+            continue;
+        }
+        status.ok()?;
+        break;
+    }
+    let buffer_end = buffer.len() * 8;
+    let base = buffer.as_ptr().cast::<u8>();
+    let mut offset = 0usize;
+    loop {
+        // SAFETY: 同 `ProcessQuery::parse`，条目按 8 字节对齐且链在缓冲区内。
+        let info = unsafe { &*base.add(offset).cast::<SystemProcessInfo>() };
+        if info.unique_process_id as u32 == pid {
+            if info.create_time.max(0) as u64 != create_time {
+                return Ok(None);
+            }
+            let threads_at = offset + size_of::<SystemProcessInfo>();
+            let limit = if info.next_entry_offset == 0 { buffer_end } else { offset + info.next_entry_offset as usize };
+            let count =
+                (info.number_of_threads as usize).min(limit.saturating_sub(threads_at) / size_of::<SystemExtendedThreadInfo>());
+            // SAFETY: 线程数已截断到条目边界之内；条目 8 字节对齐，扩展线程结构大小是 8 的倍数。
+            let threads =
+                unsafe { std::slice::from_raw_parts(base.add(threads_at).cast::<SystemExtendedThreadInfo>(), count) };
+            return Ok(Some(
+                threads
+                    .iter()
+                    .map(|t| RawThread {
+                        tid: t.base.unique_thread as u32,
+                        priority: t.base.priority,
+                        base_priority: t.base.base_priority,
+                        state: t.base.thread_state,
+                        wait_reason: t.base.wait_reason,
+                        cpu_time: (t.base.user_time + t.base.kernel_time).max(0) as u64,
+                        context_switches: t.base.context_switches,
+                        start_address: if t.win32_start_address != 0 { t.win32_start_address } else { t.base.start_address } as u64,
+                    })
+                    .collect(),
+            ));
+        }
+        if info.next_entry_offset == 0 {
+            return Ok(None);
+        }
+        offset += info.next_entry_offset as usize;
     }
 }
 

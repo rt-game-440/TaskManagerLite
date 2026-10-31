@@ -2,10 +2,13 @@ import { Button, Palette, ListView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { HeaderCell } from "process-page.slint";
 
+// 线程的一行（#90）。
+export struct ThreadRow { tid: string, priority: string, state: string, cpu: string, start: string, switches: string }
+
 // 已加载模块的一行（#74）。
 export struct ModuleRow { name: string, path: string, base: string, size: string, description: string, company: string }
 
-// 进程详情窗口（#74）：顶部页签，当前只有“模块”，线程（#90）与句柄（#91）接入时在页签头与内容区各加一项。
+// 进程详情窗口（#74）：顶部页签：模块（#74）、线程（#90），句柄（#91）接入时在页签头与内容区各加一项。
 // 数据由 Rust 在窗口打开期间定时刷新（见 controller/process_details.rs）。
 export component ProcessDetailsWindow inherits Window {
     title: @tr("进程详细信息");
@@ -20,6 +23,7 @@ export component ProcessDetailsWindow inherits Window {
     // 标题行：进程名与 PID。
     in property <string> heading;
     in property <[ModuleRow]> modules;
+    in property <[ThreadRow]> threads;
     // 读取失败的原因；空表示正常。needs-elevation 时再显示“以管理员身份重启”。
     in property <string> error;
     in property <bool> needs-elevation;
@@ -29,6 +33,8 @@ export component ProcessDetailsWindow inherits Window {
     in-out property <[length]> widths: [180px, 130px, 90px, 200px, 160px];
     callback elevate();
     callback resized-column();
+    // 切换页签后由 Rust 立刻读取该页签的数据。
+    callback tab-changed();
 
     public function set-theme(mode: int) {
         Palette.color-scheme = mode == 1 ? ColorScheme.light : mode == 2 ? ColorScheme.dark : ColorScheme.unknown;
@@ -53,9 +59,9 @@ export component ProcessDetailsWindow inherits Window {
                 for name[i] in [@tr("模块"), @tr("线程"), @tr("句柄")]: Rectangle {
                     width: 72px;
                     border-radius: 4px;
-                    background: root.tab == i ? Theme.selected : tab-touch.has-hover && i == 0 ? Theme.hover : transparent;
-                    Text { text: name; horizontal-alignment: center; vertical-alignment: center; color: i == 0 ? Palette.foreground : Theme.faint-text; }
-                    tab-touch := TouchArea { enabled: i == 0; clicked => { root.tab = i; } }
+                    background: root.tab == i ? Theme.selected : tab-touch.has-hover && i < 2 ? Theme.hover : transparent;
+                    Text { text: name; horizontal-alignment: center; vertical-alignment: center; color: i < 2 ? Palette.foreground : Theme.faint-text; }
+                    tab-touch := TouchArea { enabled: i < 2; clicked => { if (root.tab != i) { root.tab = i; root.tab-changed(); } } }
                 }
             }
         }
@@ -71,7 +77,42 @@ export component ProcessDetailsWindow inherits Window {
                 }
             }
         }
-        if root.error == "": VerticalLayout {
+        if root.error == "" && root.tab == 1: VerticalLayout {
+            vertical-stretch: 1;
+            spacing: 0px;
+            Rectangle {
+                height: 30px;
+                background: Theme.surface-raised;
+                HorizontalLayout {
+                    padding-left: 8px; spacing: 8px;
+                    HeaderCell { text: @tr("线程 ID"); width: 80px; align: left; resizable: false; }
+                    HeaderCell { text: @tr("优先级"); width: 80px; align: left; resizable: false; }
+                    HeaderCell { text: @tr("状态"); width: 190px; align: left; resizable: false; }
+                    HeaderCell { text: @tr("CPU 时间"); width: 110px; align: left; resizable: false; }
+                    HeaderCell { text: @tr("起始地址"); min-width: 200px; horizontal-stretch: 1; align: left; resizable: false; }
+                    HeaderCell { text: @tr("上下文切换"); width: 100px; align: left; resizable: false; }
+                }
+            }
+            ListView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                for row in root.threads: Rectangle {
+                    height: Theme.row-height;
+                    background: thread-touch.has-hover ? Theme.hover : transparent;
+                    thread-touch := TouchArea { }
+                    HorizontalLayout {
+                        padding-left: 8px; spacing: 8px;
+                        Text { width: 80px; text: row.tid; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { width: 80px; text: row.priority; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { width: 190px; text: row.state; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { width: 110px; text: row.cpu; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { min-width: 200px; horizontal-stretch: 1; text: row.start; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { width: 100px; text: row.switches; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                    }
+                }
+            }
+        }
+        if root.error == "" && root.tab == 0: VerticalLayout {
             vertical-stretch: 1;
             spacing: 0px;
             Rectangle {

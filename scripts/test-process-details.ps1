@@ -4,6 +4,8 @@
 #   1. 模块行数与 .NET 的 Process.Modules 一致（含 ping.exe 自身与 ntdll.dll）；
 #   2. 至少有一部分模块读到了描述（后台线程读文件版本）；
 #   3. System 进程（PID 4）显示原因而不是空表（错误非空，模块 0 行）。
+# 线程页签（#90，TML_DETAILS_TAB=1 切到线程）：
+#   4. 线程行数与 Process.Threads 接近；5. 起始地址有“模块名+0x偏移”的行。
 # 只结束本脚本自己启动的子进程与应用实例。截图写到 -Out（默认临时目录）。
 # 用法：pwsh scripts/test-process-details.ps1 [-Exe target/release/TaskManagerLite.exe] [-Out <目录>]
 param(
@@ -53,6 +55,15 @@ try {
     Check '模块行数与 Process.Modules 接近' ([math]::Abs($rows - $expected) -le 3 -and $rows -gt 0) "界面=$rows .NET=$expected"
     Check '读到了描述' ($desc -gt 0) "有描述=$desc"
     Check '保存了截图' (Test-Path (Join-Path $Out 'details-modules.bmp'))
+
+    $env:TML_DETAILS_TAB = '1'
+    $textT = Run-Details $kid.Id (Join-Path $Out 'details-threads.bmp')
+    Remove-Item Env:TML_DETAILS_TAB
+    $mt = [regex]::Match($textT, '详情窗口 线程行数=(\d+) 起始地址带偏移=(\d+)')
+    $tn = if ($mt.Success) { [int]$mt.Groups[1].Value } else { -1 }
+    $expT = (Get-Process -Id $kid.Id).Threads.Count
+    Check '线程行数与 Process.Threads 接近' ([math]::Abs($tn - $expT) -le 2 -and $tn -gt 0) "界面=$tn .NET=$expT"
+    Check '起始地址带模块名+偏移' ($mt.Success -and [int]$mt.Groups[2].Value -gt 0) "带偏移=$($mt.Groups[2].Value)"
 
     $text4 = Run-Details 4 (Join-Path $Out 'details-system.bmp')
     $m4 = [regex]::Match($text4, '详情窗口 模块行数=(\d+) 有描述=\d+ 错误=(.*)')

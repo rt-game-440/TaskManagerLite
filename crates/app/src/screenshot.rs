@@ -993,6 +993,15 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
                 "details" => {
                     // 打开详情窗口，稍等描述 / 公司读完后把模块数写进日志；设了 TML_DETAILS_SHOT 就保存窗口截图，随后退出。
                     menu.invoke_show_details();
+                    if std::env::var_os("TML_DETAILS_TAB").is_some_and(|v| v == "1") {
+                        Timer::single_shot(Duration::from_millis(800), move || {
+                            crate::CONTROLLER.with(|c| {
+                                if let Some(c) = c.borrow().as_ref() {
+                                    c.details_select_threads();
+                                }
+                            });
+                        });
+                    }
                     Timer::single_shot(Duration::from_millis(2500), move || {
                         crate::CONTROLLER.with(|c| {
                             if let Some(c) = c.borrow().as_ref() {

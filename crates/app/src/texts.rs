@@ -331,6 +331,46 @@ pub fn module_error(e: &tml_core::modules::ModuleError) -> String {
     }
 }
 
+/// 线程状态文案（等待时带原因）。
+pub fn thread_state(s: tml_core::threads::ThreadState, wait_reason: u32) -> String {
+    use tml_core::threads::ThreadState::*;
+    match s {
+        Initialized => tr("初始化").into(),
+        Ready | DeferredReady => tr("就绪").into(),
+        Running => tr("正在运行").into(),
+        Standby => tr("备用").into(),
+        Terminated => tr("已结束").into(),
+        Transition => tr("转换").into(),
+        Suspended => tr("已挂起").into(),
+        Waiting => trf("等待：{0}", &[&wait_reason_text(wait_reason)]),
+        Other(n) => n.to_string(),
+    }
+}
+
+fn wait_reason_text(r: u32) -> String {
+    match r {
+        0 | 7 => tr("执行体"),
+        4 | 11 => tr("延迟"),
+        6 | 13 => tr("用户请求"),
+        15 => tr("队列"),
+        16 | 17 => tr("LPC"),
+        3 | 10 => tr("内存池"),
+        1 | 8 | 2 | 9 | 18 | 19 => tr("内存页"),
+        5 | 12 => tr("挂起"),
+        _ => tr("其他"),
+    }
+    .into()
+}
+
+/// 读取线程列表失败的原因。
+pub fn thread_error(e: &tml_core::threads::ThreadError) -> String {
+    use tml_core::threads::ThreadError;
+    match e {
+        ThreadError::Gone => tr("进程已经退出").into(),
+        ThreadError::System(e) => trf("系统返回错误：{0}", &[&e]),
+    }
+}
+
 /// 转储失败的原因（状态栏“操作失败：…”的后半句）。
 pub fn dump_error(e: &DumpError) -> String {
     match e {

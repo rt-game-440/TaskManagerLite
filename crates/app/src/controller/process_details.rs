@@ -18,7 +18,7 @@ use tml_core::modules::{self, Module};
 
 use crate::settings::DetailsWindow;
 use crate::texts;
-use crate::{AppWindow, ModuleRow, ProcessDetailsWindow, ProcessMenu};
+use crate::{AppWindow, ModuleRow, ProcessDetailsWindow, ProcessMenu, ThreadRow};
 
 /// 详情窗口的运行状态。
 #[derive(Default)]
@@ -75,6 +75,12 @@ impl super::Controller {
                 }
             });
             let c = Rc::downgrade(self);
+            w.on_tab_changed(move || {
+                if let Some(c) = c.upgrade() {
+                    c.refresh_details();
+                }
+            });
+            let c = Rc::downgrade(self);
             w.on_resized_column(move || {
                 if let Some(c) = c.upgrade() {
                     c.remember_details_layout();
@@ -116,9 +122,20 @@ impl super::Controller {
         let rows = w.get_modules();
         let described = (0..rows.row_count()).filter(|i| rows.row_data(*i).is_some_and(|r| !r.description.is_empty())).count();
         eprintln!("详情窗口 模块行数={} 有描述={} 错误={}", rows.row_count(), described, w.get_error());
+        let threads = w.get_threads();
+        let located = (0..threads.row_count()).filter(|i| threads.row_data(*i).is_some_and(|r| r.start.contains("+0x"))).count();
+        eprintln!("详情窗口 线程行数={} 起始地址带偏移={}", threads.row_count(), located);
         if let (Some(path), Ok(buf)) = (shot, w.window().take_snapshot()) {
             let _ = crate::screenshot::write_bmp(path, &buf);
         }
+    }
+
+    /// 测试钩子用：切到“线程”页签并立即刷新。
+    pub fn details_select_threads(self: &Rc<Self>) {
+        if let Some(w) = self.details.window.borrow().as_ref() {
+            w.set_tab(1);
+        }
+        self.refresh_details();
     }
 
     fn close_details(&self) {
@@ -158,6 +175,10 @@ impl super::Controller {
         let Some(w) = guard.as_ref() else { return };
         self.drain_versions();
         w.set_heading(trf("{0}（PID {1}）", &[&*d.name.borrow(), &key.pid]).into());
+        if w.get_tab() == 1 {
+            self.refresh_threads(w, key);
+            return;
+        }
         match modules::list_modules(key) {
             Ok(mods) => {
                 w.set_error("".into());
@@ -177,6 +198,42 @@ impl super::Controller {
             }
         }
         self.show_modules(w);
+    }
+
+    /// “线程”页签：读线程列表，起始地址用模块列表解析成“模块名+偏移”。
+    fn refresh_threads(&self, w: &ProcessDetailsWindow, key: ProcessKey) {
+        use tml_core::threads;
+        match threads::list_threads(key) {
+            Ok(list) => {
+                let mods = modules::list_modules(key).unwrap_or_default();
+                let rows: Vec<ThreadRow> = list
+                    .iter()
+                    .map(|t| ThreadRow {
+                        tid: t.tid.to_string().into(),
+                        priority: format!("{}", t.priority).into(),
+                        state: texts::thread_state(t.state, t.wait_reason).into(),
+                        cpu: crate::details::cpu_time(t.cpu_time).into(),
+                        start: match threads::locate(t.start_address, &mods) {
+                            Some((name, off)) => format!("{name}+0x{off:X}"),
+                            None => format!("0x{:X}", t.start_address),
+                        }
+                        .into(),
+                        switches: t.context_switches.to_string().into(),
+                    })
+                    .collect();
+                w.set_error("".into());
+                w.set_needs_elevation(false);
+                w.set_summary(trf("{0} 个线程", &[&rows.len()]).into());
+                w.set_threads(ModelRc::new(VecModel::from(rows)));
+            }
+            Err(e) => {
+                self.log.borrow_mut().line(format!("详情窗口 线程读取失败 pid={} 错误码={}", key.pid, e.code()));
+                w.set_error(texts::thread_error(&e).into());
+                w.set_needs_elevation(false);
+                w.set_summary("".into());
+                w.set_threads(ModelRc::new(VecModel::from(Vec::<ThreadRow>::new())));
+            }
+        }
     }
 
     fn show_modules(&self, w: &ProcessDetailsWindow) {
