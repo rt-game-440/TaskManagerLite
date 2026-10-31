@@ -319,6 +319,18 @@ pub fn dump_menu_title(block: Option<&DumpError>) -> &'static str {
     }
 }
 
+/// 读取模块列表失败的原因（详情窗口里整页显示）。
+pub fn module_error(e: &tml_core::modules::ModuleError) -> String {
+    use tml_core::modules::ModuleError;
+    match e {
+        ModuleError::Gone => tr("进程已经退出").into(),
+        ModuleError::Protected => tr("系统空闲 / System 进程没有用户态模块").into(),
+        ModuleError::AccessDenied => tr("没有权限读取该进程的模块（受保护进程或需要管理员权限）").into(),
+        ModuleError::NotReady => tr("进程正在启动或退出，稍后自动重试").into(),
+        ModuleError::System(e) => trf("系统返回错误：{0}", &[&e]),
+    }
+}
+
 /// 转储失败的原因（状态栏“操作失败：…”的后半句）。
 pub fn dump_error(e: &DumpError) -> String {
     match e {

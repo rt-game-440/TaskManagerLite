@@ -24,6 +24,7 @@ mod graph_hover;
 mod memory;
 mod mini;
 mod process_control;
+mod process_details;
 mod process_menu;
 mod run_task;
 mod services_page;
@@ -96,6 +97,7 @@ pub struct Controller {
     /// 本程序挂起的进程与退出前提示（#67）。
     suspend: suspend::SuspendState,
     dump: dump::DumpState,
+    details: process_details::DetailsState,
     ui: slint::Weak<AppWindow>,
     rows: Rc<VecModel<ProcRow>>,
     resources: Rc<VecModel<Resource>>,
@@ -332,6 +334,7 @@ impl Controller {
             eco: Default::default(),
             suspend: Default::default(),
             dump: Default::default(),
+            details: Default::default(),
             ui: ui.as_weak(),
             rows,
             resources,
@@ -386,6 +389,7 @@ impl Controller {
         c.bind_process_control(ui);
         c.bind_suspend(ui);
         c.bind_dump(ui);
+        c.bind_process_details(ui);
         c.bind_window_ops(ui);
         c.bind_export(ui);
         c.bind_graph_hover(ui);
@@ -1562,7 +1566,7 @@ impl Controller {
         self.sampler.send(Command::Wake);
     }
 
-    fn elevate(&self) {
+    pub(super) fn elevate(&self) {
         // 新进程会立刻读取设置，先保存。
         self.save_settings();
         if tml_core::relaunch_elevated() {

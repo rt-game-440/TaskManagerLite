@@ -12,6 +12,7 @@ mod details;
 mod diskio;
 mod disks;
 mod dump;
+pub mod modules;
 mod error;
 mod etw;
 mod icon;

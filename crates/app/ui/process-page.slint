@@ -97,6 +97,8 @@ export global ProcessMenu {
     callback toggle-eco();
     // 创建转储文件：false = 最小，true = 完整；保存位置与完整转储的体积确认由 Rust 处理。
     callback create-dump(bool);
+    // 打开进程详细信息窗口（#74）。
+    callback show-details();
     callback suspend();
     callback resume();
     // 切到服务页，按所选进程的 PID 过滤并选中它承载的服务。
@@ -419,6 +421,12 @@ component ProcRowView inherits Rectangle {
                 }
             }
 
+            MenuItem {
+                title: @tr("详细信息…");
+                activated => {
+                    ProcessMenu.show-details();
+                }
+            }
             MenuItem {
                 title: @tr("转到服务");
                 enabled: ProcessMenu.can-goto-service;

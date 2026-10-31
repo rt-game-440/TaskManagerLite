@@ -990,6 +990,18 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
                         let _ = slint::quit_event_loop();
                     });
                 }
+                "details" => {
+                    // 打开详情窗口，稍等描述 / 公司读完后把模块数写进日志；设了 TML_DETAILS_SHOT 就保存窗口截图，随后退出。
+                    menu.invoke_show_details();
+                    Timer::single_shot(Duration::from_millis(2500), move || {
+                        crate::CONTROLLER.with(|c| {
+                            if let Some(c) = c.borrow().as_ref() {
+                                c.details_probe(std::env::var_os("TML_DETAILS_SHOT").as_deref().map(Path::new));
+                            }
+                        });
+                        let _ = slint::quit_event_loop();
+                    });
+                }
                 "affinity-shot" => {
                     // 打开亲和性对话框并把窗口截图写到环境变量 TML_AFFINITY_SHOT 指定的 BMP，随后退出。
                     menu.invoke_set_affinity();
@@ -1116,7 +1128,7 @@ fn step(weak: slint::Weak<AppWindow>, dir: Rc<PathBuf>, i: usize) {
 }
 
 /// 写 32 位自上而下的 BMP，避免为开发工具引入图像编码依赖。
-fn write_bmp(path: &Path, buf: &SharedPixelBuffer<Rgba8Pixel>) -> std::io::Result<()> {
+pub(crate) fn write_bmp(path: &Path, buf: &SharedPixelBuffer<Rgba8Pixel>) -> std::io::Result<()> {
     let (w, h) = (buf.width(), buf.height());
     let pixels = w as usize * h as usize * 4;
     let mut out = Vec::with_capacity(54 + pixels);

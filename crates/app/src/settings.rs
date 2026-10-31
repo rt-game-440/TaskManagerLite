@@ -27,6 +27,14 @@ pub struct WindowRect {
     pub height: f32,
 }
 
+/// 进程详情窗口的尺寸与列宽（#74）。
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DetailsWindow {
+    pub width: f32,
+    pub height: f32,
+    pub widths: [f32; 5],
+}
+
 /// 迷你模式（#19）。
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MiniSettings {
@@ -95,6 +103,8 @@ impl Default for ColumnWidths {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     pub window: Option<WindowRect>,
+    /// 进程详情窗口（#74）：宽、高与模块表五列宽度（名称 / 基址 / 大小 / 描述 / 公司）。
+    pub details_window: Option<DetailsWindow>,
     pub maximized: bool,
     /// 采样间隔：0 = 0.5 秒，1 = 1 秒，2 = 2 秒，3 = 暂停。
     pub interval_index: i32,
@@ -144,6 +154,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             window: None,
+            details_window: None,
             maximized: false,
             interval_index: 1,
             view: ViewMode::Flat,
@@ -194,6 +205,7 @@ pub fn push_run_history(history: &mut Vec<String>, input: &str) {
 // `tree` 是旧版的布尔视图开关，读取时迁移为 `view`，保存时不再写出。
 const KNOWN: &[&str] = &[
     "window",
+    "details_window",
     "interval_index",
     "tree",
     "view",
@@ -306,6 +318,21 @@ impl Settings {
         {
             s.window = Some(WindowRect { x, y, width, height });
             s.maximized = w.get("maximized").and_then(Value::as_bool).unwrap_or(false);
+        }
+        if let Some(d) = o.get("details_window").and_then(Value::as_object)
+            && let (Some(width), Some(height)) = (float(d, "width"), float(d, "height"))
+            && width >= 200.0
+            && height >= 100.0
+            && let Some(list) = d.get("columns").and_then(Value::as_array)
+            && list.len() == 5
+        {
+            let mut widths = [0.0; 5];
+            for (slot, v) in widths.iter_mut().zip(list) {
+                *slot = v.as_f64().filter(|w| w.is_finite()).unwrap_or(0.0) as f32;
+            }
+            if widths.iter().all(|w| (20.0..=2000.0).contains(w)) {
+                s.details_window = Some(DetailsWindow { width, height, widths });
+            }
         }
         if let Some(i) = int::<i32>(o, "interval_index")
             && (0..=3).contains(&i)
@@ -442,6 +469,13 @@ impl Settings {
             m.insert("height".into(), number(w.height));
             m.insert("maximized".into(), self.maximized.into());
             o.insert("window".into(), Value::Object(m));
+        }
+        if let Some(d) = self.details_window {
+            let mut m = Map::new();
+            m.insert("width".into(), number(d.width));
+            m.insert("height".into(), number(d.height));
+            m.insert("columns".into(), Value::Array(d.widths.iter().map(|w| number(*w)).collect()));
+            o.insert("details_window".into(), Value::Object(m));
         }
         o.insert("interval_index".into(), self.interval_index.into());
         o.insert("view".into(), view_mode_name(self.view).into());
@@ -604,6 +638,7 @@ mod tests {
             mini: MiniSettings { active: true, position: Some((-1500, 40)), on_top: false, opacity: 80 },
             run_history: vec!["notepad".into(), r#""C:\Program Files\x\a.exe" --flag"#.into()],
             history_window: Window::Min10,
+            details_window: Some(DetailsWindow { width: 900.0, height: 500.0, widths: [100.0, 110.0, 90.0, 200.0, 160.0] }),
             extra: Map::new(),
         }
     }
@@ -714,6 +749,13 @@ mod tests {
         assert_eq!(parse(r#"{"theme": 2}"#).theme, 0);
         assert!(Settings { theme: 1, ..Settings::default() }.to_json().contains(r#""theme": "light""#));
         // 语言：缺字段 / 未知值按跟随系统，写出为字符串键。
+        assert_eq!(Settings::default().details_window, None);
+        let d = parse(r#"{"details_window": {"width": 900, "height": 500, "columns": [100, 110, 90, 200, 160]}}"#).details_window.unwrap();
+        assert_eq!((d.width, d.widths[1]), (900.0, 110.0));
+        assert!(parse(r#"{"details_window": {"width": 900, "height": 500, "columns": [100, 110]}}"#).details_window.is_none());
+        assert!(parse(r#"{"details_window": {"width": 900, "height": 500, "columns": [1, 110, 90, 200, 160]}}"#).details_window.is_none());
+        let round = Settings { details_window: Some(d), ..Settings::default() };
+        assert_eq!(parse(&round.to_json()).details_window, Some(d));
         assert_eq!(Settings::default().language, 0);
         assert_eq!(parse(r#"{"theme": "dark"}"#).language, 0);
         assert_eq!(parse(r#"{"language": "zh"}"#).language, 1);
