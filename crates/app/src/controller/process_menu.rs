@@ -1,6 +1,7 @@
 //! 进程右键菜单：右键时按需读取所选进程的路径与命令行，决定菜单项是否可用，并执行菜单动作。
 //! 读取不进入采样热路径；拿不到（权限不足、受保护进程）的项置灰。
 
+use crate::i18n::{tr, trf};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -48,7 +49,7 @@ pub fn goto_service_enabled(hosted: usize) -> bool {
 
 /// 菜单动作失败时在状态栏显示的说明（前面由界面加上“操作失败：”）。
 pub(super) fn failure(action: &str, reason: &str) -> String {
-    format!("{action}（{reason}）")
+    trf("{0}（{1}）", &[&action, &reason])
 }
 
 impl Controller {
@@ -106,26 +107,26 @@ impl Controller {
         match tml_core::image_path_of(key) {
             Some(path) => Some((key, name, path)),
             None => {
-                self.report(STATUS_ERROR, failure(action, &format!("无法读取 {name} 的路径")));
+                self.report(STATUS_ERROR, failure(action, &trf("无法读取 {0} 的路径", &[&name])));
                 None
             }
         }
     }
 
     fn open_location(&self) {
-        let Some((_, _, path)) = self.selected_with_path("打开文件位置") else { return };
+        let Some((_, _, path)) = self.selected_with_path(tr("打开文件位置")) else { return };
         if let Err(e) = tml_core::reveal_in_explorer(&path) {
             self.log.borrow_mut().line(format!("打开文件位置失败 {} {e:?}", path.display()));
-            self.report(STATUS_ERROR, failure("打开文件位置", &texts::shell_error(&e)));
+            self.report(STATUS_ERROR, failure(tr("打开文件位置"), &texts::shell_error(&e)));
         }
     }
 
     fn copy_path(&self) {
-        let Some((_, name, path)) = self.selected_with_path("复制路径") else { return };
+        let Some((_, name, path)) = self.selected_with_path(tr("复制路径")) else { return };
         if tml_core::set_clipboard_text(&path.to_string_lossy()) {
             self.report(STATUS_PATH_COPIED, name);
         } else {
-            self.report(STATUS_ERROR, failure("复制路径", "剪贴板被占用"));
+            self.report(STATUS_ERROR, failure(tr("复制路径"), tr("剪贴板被占用")));
         }
     }
 
@@ -136,18 +137,18 @@ impl Controller {
                 if tml_core::set_clipboard_text(&line) {
                     self.report(STATUS_COMMAND_LINE_COPIED, name);
                 } else {
-                    self.report(STATUS_ERROR, failure("复制命令行", "剪贴板被占用"));
+                    self.report(STATUS_ERROR, failure(tr("复制命令行"), tr("剪贴板被占用")));
                 }
             }
-            _ => self.report(STATUS_ERROR, failure("复制命令行", &format!("无法读取 {name} 的命令行"))),
+            _ => self.report(STATUS_ERROR, failure(tr("复制命令行"), &trf("无法读取 {0} 的命令行", &[&name]))),
         }
     }
 
     fn show_properties(&self) {
-        let Some((_, _, path)) = self.selected_with_path("打开属性") else { return };
+        let Some((_, _, path)) = self.selected_with_path(tr("打开属性")) else { return };
         if let Err(e) = tml_core::show_properties(&path) {
             self.log.borrow_mut().line(format!("打开属性失败 {} {e:?}", path.display()));
-            self.report(STATUS_ERROR, failure("打开属性", &texts::shell_error(&e)));
+            self.report(STATUS_ERROR, failure(tr("打开属性"), &texts::shell_error(&e)));
         }
     }
 
@@ -157,7 +158,7 @@ impl Controller {
         let hosted = hosted_count(key.pid);
         if !goto_service_enabled(hosted) {
             self.log.borrow_mut().line(format!("进程页 转到服务 PID={} 没有承载服务", key.pid));
-            self.report(STATUS_ERROR, failure("转到服务", &format!("{name} 没有承载服务")));
+            self.report(STATUS_ERROR, failure(tr("转到服务"), &trf("{0} 没有承载服务", &[&name])));
             return;
         }
         self.log.borrow_mut().line(format!("进程页 转到服务 PID={} 服务数={hosted}", key.pid));
@@ -168,7 +169,7 @@ impl Controller {
         let Some((_, name, _)) = self.selected_process() else { return };
         if let Err(e) = tml_core::search_online(&name) {
             self.log.borrow_mut().line(format!("在线搜索失败 {name} {e:?}"));
-            self.report(STATUS_ERROR, failure("在线搜索", &texts::shell_error(&e)));
+            self.report(STATUS_ERROR, failure(tr("在线搜索"), &texts::shell_error(&e)));
         }
     }
 }

@@ -3,6 +3,7 @@
 //! 保存对话框与 `MiniDumpWriteDump` 都在后台线程里完成，界面线程只显示进度与结果。完整转储先弹确认框，
 //! 显示估算体积；写完后弹出提示，可一键打开所在文件夹。日志只记 PID、类型、结果与错误码，不记路径。
 
+use crate::i18n::{tr, trf};
 use std::cell::{Cell, RefCell};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -71,7 +72,7 @@ impl Controller {
     fn request_dump(&self, kind: DumpKind) {
         let Some((key, name, _)) = self.selected_process() else { return };
         if self.dump.busy.get() {
-            self.report(STATUS_ERROR, failure(texts::dump_action(), "上一个转储还没有完成"));
+            self.report(STATUS_ERROR, failure(texts::dump_action(), tr("上一个转储还没有完成")));
             return;
         }
         if let Err(e) = tml_core::can_dump_process(key) {
@@ -103,7 +104,7 @@ impl Controller {
         let Some(path) = self.dump.last.borrow().clone() else { return };
         if let Err(e) = tml_core::reveal_in_explorer(&path) {
             self.log.borrow_mut().line(format!("转储 打开所在文件夹失败 {e:?}"));
-            self.report(STATUS_ERROR, failure("打开所在文件夹", &texts::shell_error(&e)));
+            self.report(STATUS_ERROR, failure(tr("打开所在文件夹"), &texts::shell_error(&e)));
         }
     }
 
@@ -145,7 +146,7 @@ impl Controller {
         });
         if spawned.is_err() {
             self.dump.busy.set(false);
-            self.report(STATUS_ERROR, failure(texts::dump_action(), "无法启动后台线程"));
+            self.report(STATUS_ERROR, failure(texts::dump_action(), tr("无法启动后台线程")));
         }
     }
 
@@ -168,7 +169,7 @@ impl Controller {
             }
             Outcome::Failed(e) => {
                 self.log.borrow_mut().line(format!("转储 {what} 失败 pid={} 错误码={}", key.pid, e.code()));
-                self.report(STATUS_ERROR, failure(texts::dump_action(), &format!("{name}：{}", texts::dump_error(&e))));
+                self.report(STATUS_ERROR, failure(texts::dump_action(), &trf("{0}：{1}", &[&name, &(texts::dump_error(&e))])));
             }
         }
     }

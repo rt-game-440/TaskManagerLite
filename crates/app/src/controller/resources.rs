@@ -3,6 +3,7 @@
 //! 这里只有纯逻辑，不依赖界面对象，可直接单测。磁盘、网卡、GPU 等设备增减时，
 //! 只需让 `ResourceSet::update` 收到新的实例列表即可。
 
+use crate::i18n::{tr, trf};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
@@ -58,32 +59,32 @@ pub fn summary_instances() -> Vec<Instance> {
             ResourceKind::Cpu,
             ResourceTint::Cpu,
             "CPU",
-            "% 利用率",
+            tr("% 利用率"),
             &[],
         ),
         Instance::new(
             MEMORY,
             ResourceKind::Memory,
             ResourceTint::Memory,
-            "内存",
-            "内存使用量",
+            tr("内存"),
+            tr("内存使用量"),
             &[],
         ),
         Instance::new(
             DISK,
             ResourceKind::Disk,
             ResourceTint::Disk,
-            "磁盘",
-            "% 活动时间",
-            &["活动时间", "读取速度", "写入速度"],
+            tr("磁盘"),
+            tr("% 活动时间"),
+            &[tr("活动时间"), tr("读取速度"), tr("写入速度")],
         ),
         Instance::new(
             NETWORK,
             ResourceKind::Network,
             ResourceTint::Network,
-            "网络",
-            "吞吐量（接收 + 发送）",
-            &["接收", "发送"],
+            tr("网络"),
+            tr("吞吐量（接收 + 发送）"),
+            &[tr("接收"), tr("发送")],
         ),
     ]
 }
@@ -103,9 +104,9 @@ pub fn device_instances(disks: &[tml_core::PhysicalDisk]) -> Vec<Instance> {
             .collect::<Vec<_>>()
             .join(" ");
         let title = if mounts.is_empty() {
-            format!("磁盘 {}", disk.number)
+            trf("磁盘 {0}", &[&disk.number])
         } else {
-            format!("磁盘 {} ({mounts})", disk.number)
+            trf("磁盘 {0} ({1})", &[&disk.number, &mounts])
         };
         result.insert(
             2 + offset,
@@ -114,8 +115,8 @@ pub fn device_instances(disks: &[tml_core::PhysicalDisk]) -> Vec<Instance> {
                 ResourceKind::Disk,
                 ResourceTint::Disk,
                 &title,
-                "% 活动时间",
-                &["活动时间", "平均响应时间", "读取速度", "写入速度"],
+                tr("% 活动时间"),
+                &[tr("活动时间"), tr("平均响应时间"), tr("读取速度"), tr("写入速度")],
             ),
         );
     }
@@ -128,7 +129,7 @@ pub fn network_instances(disks: &[tml_core::PhysicalDisk], networks: &[tml_core:
     result.retain(|i| i.id != NETWORK);
     for n in networks {
         result.push(Instance::new(&n.id, ResourceKind::Network, ResourceTint::Network,
-            crate::texts::connection_kind(n.connection), "吞吐量（接收 + 发送）", &["接收", "发送"]));
+            crate::texts::connection_kind(n.connection), tr("吞吐量（接收 + 发送）"), &[tr("接收"), tr("发送")]));
     }
     result
 }
@@ -216,7 +217,7 @@ impl ResourceSet {
         let mut instances: Vec<_> = self.instances.iter().filter(|i| i.kind != ResourceKind::Gpu).cloned().collect();
         for (index, g) in gpus.iter().enumerate() {
             instances.push(Instance::new(&g.id, ResourceKind::Gpu, ResourceTint::Gpu,
-                &format!("GPU {index}"), "% 利用率（最忙引擎）", &["利用率", "专用显存", "共享显存"]));
+                &format!("GPU {index}"), tr("% 利用率（最忙引擎）"), &[tr("利用率"), tr("专用显存"), tr("共享显存")]));
         }
         if instances != self.instances { self.update(instances); }
         self.gpu_memory.retain(|id,_| gpus.iter().any(|g| &g.id == id));
@@ -234,7 +235,7 @@ impl ResourceSet {
         self.gpu_memory.get(&gpu.id).map(|h| h.iter().enumerate().map(|(index,h)| {
             let total = if index == 0 { gpu.dedicated_total } else { gpu.shared_total };
             let scale = if total > 0 { total as f64 } else { h.max_in(now, window).max(1.0) };
-            let label = if total > 0 { crate::format::gigabytes(total) } else { "容量不可用".into() };
+            let label = if total > 0 { crate::format::gigabytes(total) } else { tr("容量不可用").into() };
             let (line, area) = h.paths(now, scale, size, window);
             (line, label, area)
         }).collect()).unwrap_or_default()
@@ -261,17 +262,17 @@ impl ResourceSet {
             let Some(h) = map.get(id) else { return "—".into() };
             if window == Window::Sec60 {
                 h.window_stats(now).map(|(min, max, mean)| {
-                    format!("峰值 {} · 谷值 {} · 均值 {}", crate::format::rate(max), crate::format::rate(min), crate::format::rate(mean))
+                    trf("峰值 {0} · 谷值 {1} · 均值 {2}", &[&(crate::format::rate(max)), &(crate::format::rate(min)), &(crate::format::rate(mean))])
                 })
             } else {
                 h.layer_summary(now, window).map(|(max, mean)| {
-                    format!("峰值 {} · 均值 {}", crate::format::rate(max), crate::format::rate(mean))
+                    trf("峰值 {0} · 均值 {1}", &[&(crate::format::rate(max)), &(crate::format::rate(mean))])
                 })
             }
             .unwrap_or_else(|| "—".into())
         };
         let name = crate::texts::window_name(window);
-        format!("最近 {name} 接收：{}\n最近 {name} 发送：{}", describe(&self.receive), describe(&self.send))
+        trf("最近 {0} 接收：{1}\n最近 {2} 发送：{3}", &[&name, &(describe(&self.receive)), &name, &(describe(&self.send))])
     }
 
     /// 测试钩子：给全部已有的曲线灌入合成历史，见 `History::prefill`。

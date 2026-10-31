@@ -6,6 +6,7 @@
 //! - 日志只记数值与结果（鼠标进入时一行，进程只记 PID，不记进程名）。
 //! - 测试钩子 `--hover <曲线>:<比例|peak>[,…][@秒]`：不需要真实鼠标，把读到的提示写进日志，见 `scripts/test-hover.ps1`。
 
+use crate::i18n::{tr, trf};
 use std::cell::Cell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -58,7 +59,7 @@ fn to_slint(s: &Shown) -> GraphHover {
 fn reading_line(curve: &str, window: &str, size: (f64, f64), scale: f64, s: &Shown) -> String {
     let head = format!("曲线={curve} 窗口={window} x={:.1} 比例={:.4}", s.guide_x, s.guide_x / size.0.max(1.0));
     match s.hover {
-        Hover::NoData => format!("{head} 状态=无数据"),
+        Hover::NoData => trf("{0} 状态=无数据", &[&head]),
         Hover::Point(p) => format!(
             "{head} 状态=有数据 数值={:.3} 均值={:.3} 点距今={:.2} 量程={scale} 图高={:.1} 圆点y={:.2} 进程PID={} 卡片行数={}",
             p.max,
@@ -66,7 +67,7 @@ fn reading_line(curve: &str, window: &str, size: (f64, f64), scale: f64, s: &Sho
             p.age,
             size.1,
             s.dot.map_or(f64::NAN, |d| d.1),
-            s.pid.map_or_else(|| "无".to_string(), |p| p.to_string()),
+            s.pid.map_or_else(|| tr("无").to_string(), |p| p.to_string()),
             s.lines.len()
         ),
     }
@@ -197,7 +198,7 @@ impl Controller {
         };
         let line = match found {
             Some((shown, d)) => reading_line(id.as_str(), s.graph_window().key(), d.size, d.scale, &shown),
-            None => format!("曲线={curve} 状态=无法悬停"),
+            None => trf("曲线={0} 状态=无法悬停", &[&curve]),
         };
         self.log.borrow_mut().line(format!("悬停 钩子 {line}"));
     }

@@ -4,6 +4,7 @@
 
 mod grid;
 
+use crate::i18n::{tr, trf};
 use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Instant;
@@ -105,12 +106,12 @@ impl CpuState {
     pub fn stats(&self, usage: &str, processes: usize) -> Vec<(&'static str, String)> {
         let s = &self.latest;
         vec![
-            ("利用率", usage.to_string()),
-            ("速度", s.current_mhz.map_or_else(|| "—".into(), ghz)),
-            ("进程", processes.to_string()),
-            ("线程", s.threads.to_string()),
-            ("句柄", s.handles.to_string()),
-            ("正常运行时间", uptime(s.uptime_secs)),
+            (tr("利用率"), usage.to_string()),
+            (tr("速度"), s.current_mhz.map_or_else(|| "—".into(), ghz)),
+            (tr("进程"), processes.to_string()),
+            (tr("线程"), s.threads.to_string()),
+            (tr("句柄"), s.handles.to_string()),
+            (tr("正常运行时间"), uptime(s.uptime_secs)),
         ]
     }
 
@@ -184,13 +185,13 @@ impl CpuState {
             return Ok(());
         }
         let expected = self.expected_cell(&data);
-        let used = self.last_cell.get().ok_or("逻辑处理器网格显示时尚未生成过曲线路径")?;
+        let used = self.last_cell.get().ok_or(tr("逻辑处理器网格显示时尚未生成过曲线路径"))?;
         if (used.0 - expected.0).abs() > 0.01 || (used.1 - expected.1).abs() > 0.01 {
             return Err(format!("曲线路径按 {used:?} 生成，但小图的实际绘制尺寸是 {expected:?}"));
         }
         let rows = self.cores.row_count();
         if rows != self.core_count() {
-            return Err(format!("小图数量 {rows} 与逻辑处理器数 {} 不一致", self.core_count()));
+            return Err(trf("小图数量 {0} 与逻辑处理器数 {1} 不一致", &[&rows, &(self.core_count())]));
         }
         Ok(())
     }
@@ -268,14 +269,14 @@ fn sync<T: Clone + PartialEq + 'static>(model: &VecModel<T>, rows: Vec<T>) {
 /// “基本信息”键值区，按列从上到下排列。
 pub fn info_rows(i: &CpuInfo) -> Vec<(&'static str, String)> {
     vec![
-        ("基准速度", if i.base_mhz > 0 { ghz(f64::from(i.base_mhz)) } else { "—".into() }),
-        ("插槽", i.sockets.to_string()),
-        ("内核", i.cores.to_string()),
-        ("逻辑处理器", i.logical.to_string()),
-        ("虚拟化", if i.virtualization { "已启用" } else { "已禁用" }.into()),
-        ("L1 缓存", cache_size(i.l1_bytes)),
-        ("L2 缓存", cache_size(i.l2_bytes)),
-        ("L3 缓存", cache_size(i.l3_bytes)),
+        (tr("基准速度"), if i.base_mhz > 0 { ghz(f64::from(i.base_mhz)) } else { "—".into() }),
+        (tr("插槽"), i.sockets.to_string()),
+        (tr("内核"), i.cores.to_string()),
+        (tr("逻辑处理器"), i.logical.to_string()),
+        (tr("虚拟化"), if i.virtualization { tr("已启用") } else { tr("已禁用") }.into()),
+        (tr("L1 缓存"), cache_size(i.l1_bytes)),
+        (tr("L2 缓存"), cache_size(i.l2_bytes)),
+        (tr("L3 缓存"), cache_size(i.l3_bytes)),
     ]
 }
 

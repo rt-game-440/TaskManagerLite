@@ -7,6 +7,7 @@
 //! - 保存对话框和写文件都在后台线程里完成，界面线程只负责显示结果；取消保存不报错。
 //! - 日志只记录行数、列数、结果与错误码，不记录导出的内容和文件路径。
 
+use crate::i18n::tr;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -323,7 +324,7 @@ impl Controller {
                     self.report(STATUS_ROW_COPIED, name);
                 } else {
                     self.log.borrow_mut().line("复制所选行 失败 剪贴板被占用");
-                    self.report(STATUS_ERROR, failure(action, "剪贴板被占用"));
+                    self.report(STATUS_ERROR, failure(action, tr("剪贴板被占用")));
                 }
             }
         }
@@ -451,7 +452,7 @@ impl Controller {
             }
             Outcome::Cancelled => self.log.borrow_mut().line(format!("导出 {what} 已取消")),
             Outcome::Failed(path, e) => {
-                let code = e.win32_code().map_or_else(|| "无".to_owned(), |c| c.to_string());
+                let code = e.win32_code().map_or_else(|| tr("无").to_owned(), |c| c.to_string());
                 self.log.borrow_mut().line(format!("导出 {what} 失败 错误码={code}"));
                 let reason = texts::export_write_error(&file_name(&path), &e);
                 self.report(STATUS_ERROR, failure(texts::export_action(), &reason));

@@ -8,6 +8,7 @@
 //! - 退出（关闭按钮、托盘“退出”、迷你窗口的退出）时不自动恢复，但若本程序挂起过的进程仍存在且仍挂起，
 //!   先提示一次；最小化与“关闭时最小化到托盘”不算退出。日志只记 PID、结果与错误码。
 
+use crate::i18n::tr;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 
@@ -173,7 +174,7 @@ impl Controller {
     /// 挂起关键进程或多个进程时先确认。
     fn request_suspend(&self, suspend: bool) {
         let Some((key, name, _)) = self.selected_process() else { return };
-        let action = if suspend { "挂起" } else { "恢复" };
+        let action = if suspend { tr("挂起") } else { tr("恢复") };
         let is_app = self.selected_is_app_row(key);
         let targets = suspend_targets(&self.state.borrow().snapshot, key, is_app, std::process::id(), suspend);
         if targets.keys.is_empty() {
@@ -181,14 +182,14 @@ impl Controller {
             self.log.borrow_mut().line(format!(
                 "{action} 拒绝 pid={} 原因={}",
                 key.pid,
-                if protected { "受保护" } else { "无可操作的进程" }
+                if protected { tr("受保护") } else { tr("无可操作的进程") }
             ));
             let reason = if protected {
                 texts::process_control_error(&ProcessControlError::Protected)
             } else if suspend {
-                "已经处于挂起状态".to_string()
+                tr("已经处于挂起状态").to_string()
             } else {
-                "没有处于挂起状态的进程".to_string()
+                tr("没有处于挂起状态的进程").to_string()
             };
             self.report(STATUS_ERROR, failure(action, &reason));
             return;
@@ -217,7 +218,7 @@ impl Controller {
 
     /// 对一组进程挂起 / 恢复并汇报结果；记录本程序挂起的进程供退出前提示使用。
     fn apply_suspend(&self, keys: &[ProcessKey], name: &str, suspend: bool) {
-        let action = if suspend { "挂起" } else { "恢复" };
+        let action = if suspend { tr("挂起") } else { tr("恢复") };
         let (mut ok, mut failed) = (0usize, 0usize);
         let mut last_error = None;
         for &key in keys {

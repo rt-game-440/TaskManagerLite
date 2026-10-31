@@ -9,6 +9,8 @@
 
 use std::borrow::Cow;
 
+use crate::i18n::{tr, trf};
+
 use tml_core::ConnectionKind;
 use tml_core::connections::{ConnectionError, TcpState};
 use tml_core::services::{Action, ServiceError, ServiceState, StartType, StartTypeBlock};
@@ -22,96 +24,96 @@ use tml_core::{
 pub fn tcp_state(state: Option<TcpState>) -> Cow<'static, str> {
     let Some(state) = state else { return "".into() };
     match state {
-        TcpState::Closed => "已关闭".into(),
-        TcpState::Listen => "监听".into(),
-        TcpState::SynSent => "已发送 SYN".into(),
-        TcpState::SynReceived => "已收到 SYN".into(),
-        TcpState::Established => "已建立".into(),
-        TcpState::FinWait1 => "FIN 等待 1".into(),
-        TcpState::FinWait2 => "FIN 等待 2".into(),
-        TcpState::CloseWait => "等待关闭".into(),
-        TcpState::Closing => "正在关闭".into(),
-        TcpState::LastAck => "最后确认".into(),
-        TcpState::TimeWait => "等待超时".into(),
-        TcpState::DeleteTcb => "删除 TCB".into(),
-        TcpState::Unknown(v) => format!("未知（{v}）").into(),
+        TcpState::Closed => tr("已关闭").into(),
+        TcpState::Listen => tr("监听").into(),
+        TcpState::SynSent => tr("已发送 SYN").into(),
+        TcpState::SynReceived => tr("已收到 SYN").into(),
+        TcpState::Established => tr("已建立").into(),
+        TcpState::FinWait1 => tr("FIN 等待 1").into(),
+        TcpState::FinWait2 => tr("FIN 等待 2").into(),
+        TcpState::CloseWait => tr("等待关闭").into(),
+        TcpState::Closing => tr("正在关闭").into(),
+        TcpState::LastAck => tr("最后确认").into(),
+        TcpState::TimeWait => tr("等待超时").into(),
+        TcpState::DeleteTcb => tr("删除 TCB").into(),
+        TcpState::Unknown(v) => trf("未知（{0}）", &[&v]).into(),
     }
 }
 
 /// 读取连接表失败的原因（连接页底栏）。
 pub fn connection_error(e: &ConnectionError) -> String {
     match e {
-        ConnectionError::System { protocol, error } => format!("{} 连接表：{error}", protocol.name()),
-        ConnectionError::KeepsGrowing { protocol } => format!("{} 连接表变化太快，多次重试仍未读到", protocol.name()),
+        ConnectionError::System { protocol, error } => trf("{0} 连接表：{1}", &[&(protocol.name()), &error]),
+        ConnectionError::KeepsGrowing { protocol } => trf("{0} 连接表变化太快，多次重试仍未读到", &[&(protocol.name())]),
     }
 }
 
 /// 服务状态（服务页“状态”列）。
 pub fn service_state(state: ServiceState) -> &'static str {
     match state {
-        ServiceState::Stopped => "已停止",
-        ServiceState::StartPending => "正在启动",
-        ServiceState::StopPending => "正在停止",
-        ServiceState::Running => "正在运行",
-        ServiceState::ContinuePending => "正在继续",
-        ServiceState::PausePending => "正在暂停",
-        ServiceState::Paused => "已暂停",
-        ServiceState::Unknown => "未知",
+        ServiceState::Stopped => tr("已停止"),
+        ServiceState::StartPending => tr("正在启动"),
+        ServiceState::StopPending => tr("正在停止"),
+        ServiceState::Running => tr("正在运行"),
+        ServiceState::ContinuePending => tr("正在继续"),
+        ServiceState::PausePending => tr("正在暂停"),
+        ServiceState::Paused => tr("已暂停"),
+        ServiceState::Unknown => tr("未知"),
     }
 }
 
 /// 服务启动类型（服务页“启动类型”列）。
 pub fn start_type(start_type: StartType) -> &'static str {
     match start_type {
-        StartType::Auto => "自动",
-        StartType::AutoDelayed => "自动（延迟启动）",
-        StartType::Manual => "手动",
-        StartType::Disabled => "已禁用",
-        StartType::Boot => "引导",
-        StartType::System => "系统",
-        StartType::Unknown => "未知",
+        StartType::Auto => tr("自动"),
+        StartType::AutoDelayed => tr("自动（延迟启动）"),
+        StartType::Manual => tr("手动"),
+        StartType::Disabled => tr("已禁用"),
+        StartType::Boot => tr("引导"),
+        StartType::System => tr("系统"),
+        StartType::Unknown => tr("未知"),
     }
 }
 
 /// 服务操作的动词（用于“正在{}服务…”“已{}服务…”“无法{}服务…”）。
 pub fn service_action(action: Action) -> &'static str {
     match action {
-        Action::Start => "启动",
-        Action::Stop => "停止",
-        Action::Restart => "重启",
-        Action::SetStartType(_) => "修改启动类型",
+        Action::Start => tr("启动"),
+        Action::Stop => tr("停止"),
+        Action::Restart => tr("重启"),
+        Action::SetStartType(_) => tr("修改启动类型"),
     }
 }
 
 /// 服务操作进行中的提示（`hint` 为提权说明，可为空）。
 pub fn service_pending(action: Action, name: &str, hint: &str) -> String {
     match action {
-        Action::SetStartType(t) => format!("正在将服务“{name}”的启动类型改为“{}”{hint}…", start_type(t)),
-        a => format!("正在{}服务“{name}”{hint}…", service_action(a)),
+        Action::SetStartType(t) => trf("正在将服务“{0}”的启动类型改为“{1}”{2}…", &[&name, &(start_type(t)), &hint]),
+        a => trf("正在{0}服务“{1}”{2}…", &[&(service_action(a)), &name, &hint]),
     }
 }
 
 /// 服务操作成功的提示。
 pub fn service_done(action: Action, name: &str) -> String {
     match action {
-        Action::SetStartType(t) => format!("已将服务“{name}”的启动类型改为“{}”", start_type(t)),
-        a => format!("已{}服务“{name}”", service_action(a)),
+        Action::SetStartType(t) => trf("已将服务“{0}”的启动类型改为“{1}”", &[&name, &(start_type(t))]),
+        a => trf("已{0}服务“{1}”", &[&(service_action(a)), &name]),
     }
 }
 
 /// 服务操作失败的提示。
 pub fn service_failed(action: Action, name: &str, e: &ServiceError) -> String {
     match action {
-        Action::SetStartType(t) => format!("无法将服务“{name}”的启动类型改为“{}”：{}", start_type(t), service_error(e)),
-        a => format!("无法{}服务“{name}”：{}", service_action(a), service_error(e)),
+        Action::SetStartType(t) => trf("无法将服务“{0}”的启动类型改为“{1}”：{2}", &[&name, &(start_type(t)), &(service_error(e))]),
+        a => trf("无法{0}服务“{1}”：{2}", &[&(service_action(a)), &name, &(service_error(e))]),
     }
 }
 
 /// 不能修改启动类型的原因（菜单标题后缀与失败提示）。
 pub fn start_type_block(b: StartTypeBlock) -> &'static str {
     match b {
-        StartTypeBlock::Driver => "驱动服务不能在此修改启动类型",
-        StartTypeBlock::Protected => "受系统保护的服务，不能修改启动类型",
+        StartTypeBlock::Driver => tr("驱动服务不能在此修改启动类型"),
+        StartTypeBlock::Protected => tr("受系统保护的服务，不能修改启动类型"),
     }
 }
 
@@ -122,8 +124,8 @@ pub fn startup_source(source: StartupSource) -> &'static str {
         StartupSource::HklmRun => "HKLM · Run",
         StartupSource::HkcuRun32 => "HKCU · Run32",
         StartupSource::HklmRun32 => "HKLM · Run32",
-        StartupSource::FolderCurrentUser => "启动文件夹 · 当前用户",
-        StartupSource::FolderAllUsers => "启动文件夹 · 所有用户",
+        StartupSource::FolderCurrentUser => tr("启动文件夹 · 当前用户"),
+        StartupSource::FolderAllUsers => tr("启动文件夹 · 所有用户"),
     }
 }
 
@@ -131,8 +133,8 @@ pub fn startup_source(source: StartupSource) -> &'static str {
 pub fn connection_kind(kind: ConnectionKind) -> &'static str {
     match kind {
         ConnectionKind::WiFi => "Wi-Fi",
-        ConnectionKind::Ethernet => "以太网",
-        ConnectionKind::Other => "其他",
+        ConnectionKind::Ethernet => tr("以太网"),
+        ConnectionKind::Other => tr("其他"),
     }
 }
 
@@ -140,10 +142,10 @@ pub fn connection_kind(kind: ConnectionKind) -> &'static str {
 pub fn window_name(window: crate::history::Window) -> &'static str {
     use crate::history::Window;
     match window {
-        Window::Sec60 => "60 秒",
-        Window::Min5 => "5 分钟",
-        Window::Min10 => "10 分钟",
-        Window::Hour1 => "1 小时",
+        Window::Sec60 => tr("60 秒"),
+        Window::Min5 => tr("5 分钟"),
+        Window::Min10 => tr("10 分钟"),
+        Window::Hour1 => tr("1 小时"),
     }
 }
 
@@ -152,51 +154,51 @@ pub fn window_name(window: crate::history::Window) -> &'static str {
 pub fn hover_ago(secs: f64, approx: bool) -> String {
     let n = secs.max(0.0).round() as u64;
     let text = match n {
-        0..=59 => format!("{n} 秒前"),
+        0..=59 => trf("{0} 秒前", &[&n]),
         60..=3599 => match n % 60 {
-            0 => format!("{} 分钟前", n / 60),
-            s => format!("{} 分 {s} 秒前", n / 60),
+            0 => trf("{0} 分钟前", &[&(n / 60)]),
+            s => trf("{0} 分 {1} 秒前", &[&(n / 60), &s]),
         },
         _ => match n % 3600 / 60 {
-            0 => format!("{} 小时前", n / 3600),
-            m => format!("{} 小时 {m} 分前", n / 3600),
+            0 => trf("{0} 小时前", &[&(n / 3600)]),
+            m => trf("{0} 小时 {1} 分前", &[&(n / 3600), &m]),
         },
     };
-    if approx { format!("约 {text}") } else { text }
+    if approx { trf("约 {0}", &[&text]) } else { text }
 }
 
 /// 悬停处没有数据（采样暂停、窗口不可见且没开后台继续采样，或曲线尚未覆盖到这里）。
 pub fn hover_no_data() -> &'static str {
-    "该时刻没有数据"
+    tr("该时刻没有数据")
 }
 
 /// 聚合点的说明：每个点覆盖的秒数，数值取这段时间内的最大值。
 pub fn hover_bucket(bucket_secs: u64) -> String {
-    format!("每点 {bucket_secs} 秒")
+    trf("每点 {0} 秒", &[&bucket_secs])
 }
 
 pub fn hover_peak(value: &str) -> String {
-    format!("峰值 {value}")
+    trf("峰值 {0}", &[&value])
 }
 
 pub fn hover_mean(value: &str) -> String {
-    format!("均值 {value}")
+    trf("均值 {0}", &[&value])
 }
 
 /// 悬停时刻占用最高的进程。磁盘速率是整机口径（进程的读写不区分物理磁盘），有多块磁盘时注明。
 pub fn hover_top_process(kind: crate::ResourceKind, multi_disk: bool, name: &str, pid: u32) -> String {
     let label = match kind {
-        crate::ResourceKind::Disk if multi_disk => "全部磁盘读写最高",
-        crate::ResourceKind::Disk => "读写最高",
-        _ => "CPU 最高",
+        crate::ResourceKind::Disk if multi_disk => tr("全部磁盘读写最高"),
+        crate::ResourceKind::Disk => tr("读写最高"),
+        _ => tr("CPU 最高"),
     };
-    format!("{label}：{name}（PID {pid}）")
+    trf("{0}：{1}（PID {2}）", &[&label, &name, &pid])
 }
 
 /// 物理磁盘介质类型（性能页磁盘详情）。
 pub fn media_type(kind: MediaType) -> &'static str {
     match kind {
-        MediaType::Unknown => "未知",
+        MediaType::Unknown => tr("未知"),
         MediaType::Ssd => "SSD",
         MediaType::Hdd => "HDD",
     }
@@ -206,8 +208,8 @@ pub fn media_type(kind: MediaType) -> &'static str {
 fn elevation_error(e: &ElevationError) -> String {
     match e {
         ElevationError::System(e) => e.to_string(),
-        ElevationError::NoHandle => "提权进程没有返回句柄".into(),
-        ElevationError::Timeout => "等待提权超时，请刷新核对状态".into(),
+        ElevationError::NoHandle => tr("提权进程没有返回句柄").into(),
+        ElevationError::Timeout => tr("等待提权超时，请刷新核对状态").into(),
     }
 }
 
@@ -216,15 +218,15 @@ pub fn service_error(e: &ServiceError) -> String {
     match e {
         ServiceError::System(e) => e.to_string(),
         ServiceError::Elevation(e) => elevation_error(e),
-        ServiceError::EmptyConfig => "服务配置为空".into(),
-        ServiceError::StoppedAfterStart => "服务启动后随即停止".into(),
-        ServiceError::NotStopped => "服务没有停止".into(),
-        ServiceError::InvalidName => "无效的服务名".into(),
-        ServiceError::BadArgumentCount => "参数数量错误".into(),
-        ServiceError::BadAction => "操作错误".into(),
-        ServiceError::BadNameEncoding => "名称编码错误".into(),
+        ServiceError::EmptyConfig => tr("服务配置为空").into(),
+        ServiceError::StoppedAfterStart => tr("服务启动后随即停止").into(),
+        ServiceError::NotStopped => tr("服务没有停止").into(),
+        ServiceError::InvalidName => tr("无效的服务名").into(),
+        ServiceError::BadArgumentCount => tr("参数数量错误").into(),
+        ServiceError::BadAction => tr("操作错误").into(),
+        ServiceError::BadNameEncoding => tr("名称编码错误").into(),
         ServiceError::StartTypeBlocked(b) => start_type_block(*b).into(),
-        ServiceError::BadStartType => "不支持的启动类型".into(),
+        ServiceError::BadStartType => tr("不支持的启动类型").into(),
     }
 }
 
@@ -233,49 +235,49 @@ pub fn startup_error(e: &StartupError) -> String {
     match e {
         StartupError::System(e) => e.to_string(),
         StartupError::Elevation(e) => elevation_error(e),
-        StartupError::InvalidEntry => "无效的启动项".into(),
-        StartupError::EntryGone => "启动项已不存在，请刷新列表".into(),
-        StartupError::BadNameEncoding => "名称编码错误".into(),
-        StartupError::BadArgumentCount => "参数数量错误".into(),
-        StartupError::BadState => "状态错误".into(),
+        StartupError::InvalidEntry => tr("无效的启动项").into(),
+        StartupError::EntryGone => tr("启动项已不存在，请刷新列表").into(),
+        StartupError::BadNameEncoding => tr("名称编码错误").into(),
+        StartupError::BadArgumentCount => tr("参数数量错误").into(),
+        StartupError::BadState => tr("状态错误").into(),
     }
 }
 
 /// 枚举启动项时某个来源读取失败的提示（来源用编号，与改动前一致）。
 pub fn startup_source_error(e: &SourceError) -> String {
-    format!("来源 {} 读取失败：{}", e.source.index(), startup_error(&e.error))
+    trf("来源 {0} 读取失败：{1}", &[&(e.source.index()), &(startup_error(&e.error))])
 }
 
 /// 右键菜单动作（打开文件位置、属性、在线搜索）失败的原因。
 pub fn shell_error(e: &ShellError) -> String {
     match e {
-        ShellError::NotFound => "文件已不存在".into(),
-        ShellError::Failed { message, .. } if message.trim().is_empty() => "系统调用失败".into(),
-        ShellError::Failed { message, .. } => format!("系统调用失败：{}", message.trim()),
-        ShellError::ShellExecute(code) => format!("系统调用失败：ShellExecute 返回 {code}"),
+        ShellError::NotFound => tr("文件已不存在").into(),
+        ShellError::Failed { message, .. } if message.trim().is_empty() => tr("系统调用失败").into(),
+        ShellError::Failed { message, .. } => trf("系统调用失败：{0}", &[&(message.trim())]),
+        ShellError::ShellExecute(code) => trf("系统调用失败：ShellExecute 返回 {0}", &[&code]),
     }
 }
 
 /// “运行新任务”对话框里显示的失败原因。
 pub fn run_error(e: &RunError) -> String {
     match e {
-        RunError::Empty => "请输入程序、文件夹、文档或网址".into(),
-        RunError::Cancelled => "已取消：没有在 UAC 对话框中允许以管理员权限运行".into(),
+        RunError::Empty => tr("请输入程序、文件夹、文档或网址").into(),
+        RunError::Cancelled => tr("已取消：没有在 UAC 对话框中允许以管理员权限运行").into(),
         // 2 找不到文件，3 找不到路径。
-        RunError::System(SystemError::Win32(2 | 3)) => "找不到指定的程序、文件、文件夹或网址，请检查输入是否正确".into(),
-        RunError::System(e) => format!("无法启动：{e}"),
+        RunError::System(SystemError::Win32(2 | 3)) => tr("找不到指定的程序、文件、文件夹或网址，请检查输入是否正确").into(),
+        RunError::System(e) => trf("无法启动：{0}", &[&e]),
     }
 }
 
 /// 进程优先级（菜单项、状态栏）。
 pub fn priority_name(class: PriorityClass) -> &'static str {
     match class {
-        PriorityClass::Realtime => "实时",
-        PriorityClass::High => "高",
-        PriorityClass::AboveNormal => "高于正常",
-        PriorityClass::Normal => "正常",
-        PriorityClass::BelowNormal => "低于正常",
-        PriorityClass::Low => "低",
+        PriorityClass::Realtime => tr("实时"),
+        PriorityClass::High => tr("高"),
+        PriorityClass::AboveNormal => tr("高于正常"),
+        PriorityClass::Normal => tr("正常"),
+        PriorityClass::BelowNormal => tr("低于正常"),
+        PriorityClass::Low => tr("低"),
     }
 }
 
@@ -284,110 +286,110 @@ pub fn priority_applied(name: &str, requested: PriorityClass, actual: PriorityCl
     if requested == actual {
         format!("{name} → {}", priority_name(actual))
     } else {
-        format!("{name} → {}（未以管理员身份运行，系统把“{}”降为了“{}”）", priority_name(actual), priority_name(requested), priority_name(actual))
+        trf("{0} → {1}（未以管理员身份运行，系统把“{2}”降为了“{3}”）", &[&name, &(priority_name(actual)), &(priority_name(requested)), &(priority_name(actual))])
     }
 }
 
 /// 状态栏：亲和性设置成功。
 pub fn affinity_applied(name: &str, selected: u32, available: u32) -> String {
-    format!("{name} → {selected}/{available} 个逻辑处理器")
+    trf("{0} → {1}/{2} 个逻辑处理器", &[&name, &selected, &available])
 }
 
 /// 设置优先级、CPU 亲和性或效率模式失败的原因。
 pub fn process_control_error(e: &ProcessControlError) -> String {
     match e {
-        ProcessControlError::Gone => "进程已经退出".into(),
-        ProcessControlError::AccessDenied => "没有权限修改该进程（受保护进程或需要管理员权限），可以以管理员身份重启后再试".into(),
-        ProcessControlError::EmptyAffinity => "至少要选择一个逻辑处理器".into(),
-        ProcessControlError::OutsideProcessorGroup => "所选处理器不在该进程所在的处理器组内".into(),
-        ProcessControlError::Protected => "系统空闲 / System 进程或本程序自身，不允许此操作".into(),
-        ProcessControlError::Unsupported => "当前 Windows 版本不支持效率模式（需要 Windows 10 1709 及以上）".into(),
-        ProcessControlError::System(e) => format!("系统返回错误：{e}"),
+        ProcessControlError::Gone => tr("进程已经退出").into(),
+        ProcessControlError::AccessDenied => tr("没有权限修改该进程（受保护进程或需要管理员权限），可以以管理员身份重启后再试").into(),
+        ProcessControlError::EmptyAffinity => tr("至少要选择一个逻辑处理器").into(),
+        ProcessControlError::OutsideProcessorGroup => tr("所选处理器不在该进程所在的处理器组内").into(),
+        ProcessControlError::Protected => tr("系统空闲 / System 进程或本程序自身，不允许此操作").into(),
+        ProcessControlError::Unsupported => tr("当前 Windows 版本不支持效率模式（需要 Windows 10 1709 及以上）").into(),
+        ProcessControlError::System(e) => trf("系统返回错误：{0}", &[&e]),
     }
 }
 
 /// 右键菜单“创建转储文件”项的标题；置灰时括号里写原因，`None` 表示可用。
 pub fn dump_menu_title(block: Option<&DumpError>) -> &'static str {
     match block {
-        None => "创建转储文件",
-        Some(DumpError::Protected) => "创建转储文件（系统进程或本程序，不可转储）",
-        Some(DumpError::Gone) => "创建转储文件（进程已退出）",
-        Some(DumpError::Bitness) => "创建转储文件（目标是 32 位进程，本程序是 64 位）",
-        Some(_) => "创建转储文件（没有权限）",
+        None => tr("创建转储文件"),
+        Some(DumpError::Protected) => tr("创建转储文件（系统进程或本程序，不可转储）"),
+        Some(DumpError::Gone) => tr("创建转储文件（进程已退出）"),
+        Some(DumpError::Bitness) => tr("创建转储文件（目标是 32 位进程，本程序是 64 位）"),
+        Some(_) => tr("创建转储文件（没有权限）"),
     }
 }
 
 /// 转储失败的原因（状态栏“操作失败：…”的后半句）。
 pub fn dump_error(e: &DumpError) -> String {
     match e {
-        DumpError::Gone => "进程已经退出".into(),
-        DumpError::Protected => "系统空闲 / System 进程或本程序自身，不允许创建转储".into(),
-        DumpError::AccessDenied => "没有权限读取该进程（受保护进程或需要管理员权限），可以以管理员身份重启后再试".into(),
-        DumpError::Bitness => "目标是 32 位进程而本程序是 64 位，系统无法生成转储".into(),
-        DumpError::CreateFile(e) => format!("无法创建转储文件：{e}"),
-        DumpError::Write(e) => format!("写入转储失败（可能磁盘空间不足），已删除不完整的文件：{e}"),
-        DumpError::System(e) => format!("系统返回错误：{e}"),
+        DumpError::Gone => tr("进程已经退出").into(),
+        DumpError::Protected => tr("系统空闲 / System 进程或本程序自身，不允许创建转储").into(),
+        DumpError::AccessDenied => tr("没有权限读取该进程（受保护进程或需要管理员权限），可以以管理员身份重启后再试").into(),
+        DumpError::Bitness => tr("目标是 32 位进程而本程序是 64 位，系统无法生成转储").into(),
+        DumpError::CreateFile(e) => trf("无法创建转储文件：{0}", &[&e]),
+        DumpError::Write(e) => trf("写入转储失败（可能磁盘空间不足），已删除不完整的文件：{0}", &[&e]),
+        DumpError::System(e) => trf("系统返回错误：{0}", &[&e]),
     }
 }
 
 pub fn dump_action() -> &'static str {
-    "创建转储文件"
+    tr("创建转储文件")
 }
 
 pub fn dump_kind_name(kind: DumpKind) -> &'static str {
     match kind {
-        DumpKind::Mini => "最小",
-        DumpKind::Full => "完整",
+        DumpKind::Mini => tr("最小"),
+        DumpKind::Full => tr("完整"),
     }
 }
 
 pub fn dump_save_title() -> &'static str {
-    "保存转储文件"
+    tr("保存转储文件")
 }
 
 /// 转储保存对话框的文件类型：(显示名, 通配符)。
 pub fn dump_filters() -> [(&'static str, &'static str); 2] {
-    [("转储文件 (*.dmp)", "*.dmp"), ("所有文件", "*.*")]
+    [(tr("转储文件 (*.dmp)"), "*.dmp"), (tr("所有文件"), "*.*")]
 }
 
 /// 状态栏：效率模式已开启（进程优先级随之降为低）。
 pub fn eco_enabled(name: &str) -> String {
-    format!("{name} → 已开启效率模式（优先级降为“低”）")
+    trf("{0} → 已开启效率模式（优先级降为“低”）", &[&name])
 }
 
 /// 状态栏：效率模式已关闭；`restored` 为关闭后的优先级（没有恢复优先级时为 `None`）。
 pub fn eco_disabled(name: &str, restored: Option<PriorityClass>) -> String {
     match restored {
-        Some(p) => format!("{name} → 已关闭效率模式（优先级恢复为“{}”）", priority_name(p)),
-        None => format!("{name} → 已关闭效率模式"),
+        Some(p) => trf("{0} → 已关闭效率模式（优先级恢复为“{1}”）", &[&name, &(priority_name(p))]),
+        None => trf("{0} → 已关闭效率模式", &[&name]),
     }
 }
 
 /// 状态栏：对应用及其后代批量切换效率模式的结果。
 pub fn eco_batch(name: &str, on: bool, ok: usize, failed: usize) -> String {
-    let verb = if on { "开启" } else { "关闭" };
+    let verb = if on { tr("开启") } else { tr("关闭") };
     if failed == 0 {
-        format!("{name} → 已为 {ok} 个进程{verb}效率模式")
+        trf("{0} → 已为 {1} 个进程{2}效率模式", &[&name, &ok, &verb])
     } else {
-        format!("{name} → 已为 {ok} 个进程{verb}效率模式，{failed} 个失败（权限不足或已退出）")
+        trf("{0} → 已为 {1} 个进程{2}效率模式，{3} 个失败（权限不足或已退出）", &[&name, &ok, &verb, &failed])
     }
 }
 
 /// 右键菜单“效率模式”项的标题；置灰时括号里写原因（`Some(true)` 关键 / 自身，`Some(false)` 无权限）。
 pub fn eco_menu_title(disabled_reason: Option<bool>) -> &'static str {
     match disabled_reason {
-        None => "效率模式",
-        Some(true) => "效率模式（系统关键进程或本程序，不可开启）",
-        Some(false) => "效率模式（没有权限）",
+        None => tr("效率模式"),
+        Some(true) => tr("效率模式（系统关键进程或本程序，不可开启）"),
+        Some(false) => tr("效率模式（没有权限）"),
     }
 }
 
 /// 菜单项置灰时的原因（效率模式）。
 pub fn eco_disabled_reason(critical: bool) -> &'static str {
     if critical {
-        "系统关键进程或本程序自身不能开启效率模式"
+        tr("系统关键进程或本程序自身不能开启效率模式")
     } else {
-        "没有权限修改该进程的效率模式"
+        tr("没有权限修改该进程的效率模式")
     }
 }
 
@@ -403,22 +405,22 @@ pub enum MenuBlock {
 /// 右键菜单“挂起”项的标题；置灰时括号里写原因，`None` 表示可用。
 pub fn suspend_menu_title(block: Option<&MenuBlock>) -> &'static str {
     match block {
-        None => "挂起",
-        Some(MenuBlock::NoTarget) => "挂起（已挂起）",
-        Some(MenuBlock::Error(ProcessControlError::Protected)) => "挂起（系统进程或本程序，不可挂起）",
-        Some(MenuBlock::Error(ProcessControlError::Gone)) => "挂起（进程已退出）",
-        Some(MenuBlock::Error(_)) => "挂起（没有权限）",
+        None => tr("挂起"),
+        Some(MenuBlock::NoTarget) => tr("挂起（已挂起）"),
+        Some(MenuBlock::Error(ProcessControlError::Protected)) => tr("挂起（系统进程或本程序，不可挂起）"),
+        Some(MenuBlock::Error(ProcessControlError::Gone)) => tr("挂起（进程已退出）"),
+        Some(MenuBlock::Error(_)) => tr("挂起（没有权限）"),
     }
 }
 
 /// 右键菜单“恢复”项的标题，规则同 [`suspend_menu_title`]。
 pub fn resume_menu_title(block: Option<&MenuBlock>) -> &'static str {
     match block {
-        None => "恢复",
-        Some(MenuBlock::NoTarget) => "恢复（未挂起）",
-        Some(MenuBlock::Error(ProcessControlError::Protected)) => "恢复（系统进程或本程序，不可操作）",
-        Some(MenuBlock::Error(ProcessControlError::Gone)) => "恢复（进程已退出）",
-        Some(MenuBlock::Error(_)) => "恢复（没有权限）",
+        None => tr("恢复"),
+        Some(MenuBlock::NoTarget) => tr("恢复（未挂起）"),
+        Some(MenuBlock::Error(ProcessControlError::Protected)) => tr("恢复（系统进程或本程序，不可操作）"),
+        Some(MenuBlock::Error(ProcessControlError::Gone)) => tr("恢复（进程已退出）"),
+        Some(MenuBlock::Error(_)) => tr("恢复（没有权限）"),
     }
 }
 
@@ -434,10 +436,10 @@ pub enum WindowBlock {
 /// 窗口操作的动作名（菜单项文字与失败提示的前缀）。
 pub fn window_op_name(op: WindowOp) -> &'static str {
     match op {
-        WindowOp::Activate => "切换到",
-        WindowOp::Maximize => "最大化",
-        WindowOp::Minimize => "最小化",
-        WindowOp::Restore => "还原",
+        WindowOp::Activate => tr("切换到"),
+        WindowOp::Maximize => tr("最大化"),
+        WindowOp::Minimize => tr("最小化"),
+        WindowOp::Restore => tr("还原"),
     }
 }
 
@@ -447,74 +449,70 @@ pub fn window_menu_title(op: WindowOp, block: Option<&WindowBlock>) -> String {
     let reason = match block {
         None => return name.to_string(),
         Some(WindowBlock::State) => match op {
-            WindowOp::Maximize => "已最大化",
-            WindowOp::Minimize => "已最小化",
-            WindowOp::Restore => "窗口已是正常大小",
-            WindowOp::Activate => "无需切换",
+            WindowOp::Maximize => tr("已最大化"),
+            WindowOp::Minimize => tr("已最小化"),
+            WindowOp::Restore => tr("窗口已是正常大小"),
+            WindowOp::Activate => tr("无需切换"),
         },
-        Some(WindowBlock::Error(WindowError::Gone)) => "窗口已关闭",
-        Some(WindowBlock::Error(WindowError::NeedsElevation)) => "需要提权",
-        Some(WindowBlock::Error(_)) => "无法操作该窗口",
+        Some(WindowBlock::Error(WindowError::Gone)) => tr("窗口已关闭"),
+        Some(WindowBlock::Error(WindowError::NeedsElevation)) => tr("需要提权"),
+        Some(WindowBlock::Error(_)) => tr("无法操作该窗口"),
     };
-    format!("{name}（{reason}）")
+    trf("{0}（{1}）", &[&name, &reason])
 }
 
 /// 窗口操作失败的原因（状态栏“操作失败：{动作}（{原因}）”里的原因）。
 pub fn window_error(e: &WindowError) -> String {
     match e {
-        WindowError::Gone => "窗口已关闭".into(),
-        WindowError::NeedsElevation => "该应用以更高权限运行，需要以管理员身份重启本程序后才能操作它的窗口".into(),
-        WindowError::NotApplied => "窗口没有响应该操作（可能不支持，或该应用以更高权限运行）".into(),
-        WindowError::System(e) => format!("系统返回错误：{e}"),
+        WindowError::Gone => tr("窗口已关闭").into(),
+        WindowError::NeedsElevation => tr("该应用以更高权限运行，需要以管理员身份重启本程序后才能操作它的窗口").into(),
+        WindowError::NotApplied => tr("窗口没有响应该操作（可能不支持，或该应用以更高权限运行）").into(),
+        WindowError::System(e) => trf("系统返回错误：{0}", &[&e]),
     }
 }
 
 /// 状态栏：窗口操作已完成。
 pub fn window_done(name: &str, op: WindowOp) -> String {
     let done = match op {
-        WindowOp::Activate => "已切换到该窗口",
-        WindowOp::Maximize => "已最大化",
-        WindowOp::Minimize => "已最小化",
-        WindowOp::Restore => "已还原",
+        WindowOp::Activate => tr("已切换到该窗口"),
+        WindowOp::Maximize => tr("已最大化"),
+        WindowOp::Minimize => tr("已最小化"),
+        WindowOp::Restore => tr("已还原"),
     };
     format!("{name} → {done}")
 }
 
 /// 状态栏：前台锁定拒绝了“切换到”，已改为闪烁任务栏按钮。
 pub fn window_flashed(name: &str) -> String {
-    format!("{name} → 系统阻止了自动切换，已闪烁任务栏，请手动切换")
+    trf("{0} → 系统阻止了自动切换，已闪烁任务栏，请手动切换", &[&name])
 }
 
 /// 状态栏：挂起 / 恢复的结果；单个进程只写动作结果，多个进程写成功数与失败数。
 pub fn suspend_result(name: &str, suspend: bool, ok: usize, failed: usize) -> String {
-    let verb = if suspend { "挂起" } else { "恢复" };
+    let verb = if suspend { tr("挂起") } else { tr("恢复") };
     if failed == 0 && ok == 1 {
-        format!("{name} → 已{verb}")
+        trf("{0} → 已{1}", &[&name, &verb])
     } else if failed == 0 {
-        format!("{name} → 已{verb} {ok} 个进程")
+        trf("{0} → 已{1} {2} 个进程", &[&name, &verb, &ok])
     } else {
-        format!("{name} → 已{verb} {ok} 个进程，{failed} 个失败（权限不足或已退出）")
+        trf("{0} → 已{1} {2} 个进程，{3} 个失败（权限不足或已退出）", &[&name, &verb, &ok, &failed])
     }
 }
 
 /// “浏览…”文件选择对话框的标题。
 pub fn browse_title() -> &'static str {
-    "选择要运行的程序或文件"
+    tr("选择要运行的程序或文件")
 }
 
 /// “浏览…”文件选择对话框的文件类型：(显示名, 通配符)。
 pub fn browse_filters() -> [(&'static str, &'static str); 2] {
-    [("程序", "*.exe;*.com;*.bat;*.cmd;*.msc;*.lnk"), ("所有文件", "*.*")]
+    [(tr("程序"), "*.exe;*.com;*.bat;*.cmd;*.msc;*.lnk"), (tr("所有文件"), "*.*")]
 }
 
 /// 开机启动操作失败的原因（“无法读取开机启动状态：{原因}”“无法修改开机启动：{原因}”）。
 pub fn autostart_error(e: &AutostartError) -> String {
     match e {
-        AutostartError::InvalidTestKey => format!(
-            "{} 必须以 {} 开头且其后不为空",
-            tml_core::AUTOSTART_TEST_KEY_ENV,
-            tml_core::TEST_KEY_PREFIX
-        ),
+        AutostartError::InvalidTestKey => trf("{0} 必须以 {1} 开头且其后不为空", &[&(tml_core::AUTOSTART_TEST_KEY_ENV), &(tml_core::TEST_KEY_PREFIX)]),
         AutostartError::System(e) => e.to_string(),
     }
 }
@@ -523,16 +521,16 @@ pub fn autostart_error(e: &AutostartError) -> String {
 pub fn debugger_value(v: &DebuggerValue) -> Cow<'_, str> {
     match v {
         DebuggerValue::Text(t) => Cow::Borrowed(t),
-        DebuggerValue::NonString { value_type } => Cow::Owned(format!("<非字符串值，类型 {value_type}>")),
+        DebuggerValue::NonString { value_type } => Cow::Owned(trf("<非字符串值，类型 {0}>", &[&value_type])),
     }
 }
 
 /// exe 所在位置不安全的具体原因（嵌在位置不安全的说明里）。
 pub fn unsafe_reason(why: &UnsafeReason) -> String {
     match why {
-        UnsafeReason::NoAcl { path } => format!("{} 没有访问控制（任何人可写）", path.display()),
-        UnsafeReason::BroadWrite { path, who } => format!("{} 授予 {who} 写入权限", path.display()),
-        UnsafeReason::ElevatedCheckFailed => "提权子进程的位置检查未通过".into(),
+        UnsafeReason::NoAcl { path } => trf("{0} 没有访问控制（任何人可写）", &[&(path.display())]),
+        UnsafeReason::BroadWrite { path, who } => trf("{0} 授予 {1} 写入权限", &[&(path.display()), &who]),
+        UnsafeReason::ElevatedCheckFailed => tr("提权子进程的位置检查未通过").into(),
     }
 }
 
@@ -540,47 +538,37 @@ pub fn unsafe_reason(why: &UnsafeReason) -> String {
 /// 这里保留的是原先核心库给出的说明（其中提到命令行的 `--force`）。
 pub fn ifeo_error(e: &IfeoError) -> String {
     match e {
-        IfeoError::AccessDenied => "没有写入系统注册表的权限（需要管理员）".into(),
-        IfeoError::Occupied(v) => format!("已被其他程序登记：{}", debugger_value(v)),
-        IfeoError::Cancelled => "已取消管理员授权".into(),
-        IfeoError::UnsafeLocation(why) => format!(
-            "exe 所在位置可被其他用户改写（{}）。请用安装包安装（默认装到 Program Files）或移到受保护目录，或使用 --force",
-            unsafe_reason(why)
-        ),
-        IfeoError::Registry(code) => format!("注册表操作失败（错误码 {code}）"),
-        IfeoError::TestKeyNotUnicode => format!("{} 不是合法的 Unicode", tml_core::TEST_KEY_ENV),
-        IfeoError::TestKeyInvalid(k) => format!(
-            "{} 必须以 {} 开头且其后不为空：{k}",
-            tml_core::TEST_KEY_ENV,
-            tml_core::TEST_KEY_PREFIX
-        ),
-        IfeoError::ExeNotFound(p) => format!("找不到程序文件：{}", p.display()),
-        IfeoError::CurrentExeUnavailable(e) => format!("无法取得本程序路径：{e}"),
-        IfeoError::ElevationLaunchFailed(e) => format!("无法启动提权子进程：{e}"),
-        IfeoError::ElevationNoHandle => "提权子进程没有返回句柄".into(),
-        IfeoError::ElevationTimeout => "等待提权子进程超时，结果未知，请重新读取登记状态".into(),
-        IfeoError::ElevationChildFailed(code) => format!("提权子进程失败（退出码 {code}）"),
+        IfeoError::AccessDenied => tr("没有写入系统注册表的权限（需要管理员）").into(),
+        IfeoError::Occupied(v) => trf("已被其他程序登记：{0}", &[&(debugger_value(v))]),
+        IfeoError::Cancelled => tr("已取消管理员授权").into(),
+        IfeoError::UnsafeLocation(why) => trf("exe 所在位置可被其他用户改写（{0}）。请用安装包安装（默认装到 Program Files）或移到受保护目录，或使用 --force", &[&(unsafe_reason(why))]),
+        IfeoError::Registry(code) => trf("注册表操作失败（错误码 {0}）", &[&code]),
+        IfeoError::TestKeyNotUnicode => trf("{0} 不是合法的 Unicode", &[&(tml_core::TEST_KEY_ENV)]),
+        IfeoError::TestKeyInvalid(k) => trf("{0} 必须以 {1} 开头且其后不为空：{2}", &[&(tml_core::TEST_KEY_ENV), &(tml_core::TEST_KEY_PREFIX), &k]),
+        IfeoError::ExeNotFound(p) => trf("找不到程序文件：{0}", &[&(p.display())]),
+        IfeoError::CurrentExeUnavailable(e) => trf("无法取得本程序路径：{0}", &[&e]),
+        IfeoError::ElevationLaunchFailed(e) => trf("无法启动提权子进程：{0}", &[&e]),
+        IfeoError::ElevationNoHandle => tr("提权子进程没有返回句柄").into(),
+        IfeoError::ElevationTimeout => tr("等待提权子进程超时，结果未知，请重新读取登记状态").into(),
+        IfeoError::ElevationChildFailed(code) => trf("提权子进程失败（退出码 {0}）", &[&code]),
         IfeoError::AclUnreadable { path, code } => {
-            format!("无法读取 {} 的访问控制列表（错误码 {code}）；确认安全后可使用 --force", path.display())
+            trf("无法读取 {0} 的访问控制列表（错误码 {1}）；确认安全后可使用 --force", &[&(path.display()), &code])
         }
-        IfeoError::AclInfoFailed(e) => format!("读取 ACL 信息失败：{e}"),
+        IfeoError::AclInfoFailed(e) => trf("读取 ACL 信息失败：{0}", &[&e]),
         IfeoError::AceUnreadable { path, index } => {
-            format!("无法读取 {} 的第 {index} 条访问控制项；确认安全后可使用 --force", path.display())
+            trf("无法读取 {0} 的第 {1} 条访问控制项；确认安全后可使用 --force", &[&(path.display()), &index])
         }
         IfeoError::SidUnparseable { path, index } => {
-            format!("无法解析 {} 的第 {index} 条访问控制项的 SID；确认安全后可使用 --force", path.display())
+            trf("无法解析 {0} 的第 {1} 条访问控制项的 SID；确认安全后可使用 --force", &[&(path.display()), &index])
         }
-        IfeoError::ThreadSpawnFailed(e) => format!("无法创建后台线程：{e}"),
+        IfeoError::ThreadSpawnFailed(e) => trf("无法创建后台线程：{0}", &[&e]),
         IfeoError::System(e) => e.to_string(),
     }
 }
 
 /// 设置页：登记因程序位置不安全被拒绝时的说明（不含命令行的 `--force`）。
 pub fn unsafe_location_note(why: &UnsafeReason) -> String {
-    format!(
-        "程序所在位置可被其他用户改写（{}），为安全起见不予登记。请用安装包安装（默认装到 Program Files）后再试，或把程序移到受保护的目录",
-        unsafe_reason(why)
-    )
+    trf("程序所在位置可被其他用户改写（{0}），为安全起见不予登记。请用安装包安装（默认装到 Program Files）后再试，或把程序移到受保护的目录", &[&(unsafe_reason(why))])
 }
 
 // ---- 导出为 CSV 与复制所选行（issue #82） ----
@@ -597,50 +585,50 @@ pub enum ExportKind {
 /// 分组视图中进程所属的组（导出的“分组”列）。
 pub fn group_name(group: tml_core::Group) -> &'static str {
     match group {
-        tml_core::Group::Apps => "应用",
-        tml_core::Group::Background => "后台进程",
+        tml_core::Group::Apps => tr("应用"),
+        tml_core::Group::Background => tr("后台进程"),
     }
 }
 
 /// 分组视图导出的“分组”列标题。
 pub fn export_group_title() -> &'static str {
-    "分组"
+    tr("分组")
 }
 
 /// 树形、分组视图导出的“层级”列标题（0 为根，1 为根的子进程，依此类推）。
 pub fn export_depth_title() -> &'static str {
-    "层级"
+    tr("层级")
 }
 
 /// 默认文件名里的前缀（后面接时间戳与 `.csv`）。
 pub fn export_file_stem(kind: ExportKind) -> &'static str {
     match kind {
-        ExportKind::Process => "进程列表",
-        ExportKind::Performance => "性能快照",
+        ExportKind::Process => tr("进程列表"),
+        ExportKind::Performance => tr("性能快照"),
     }
 }
 
 /// 保存对话框的标题。
 pub fn export_save_title(kind: ExportKind) -> &'static str {
     match kind {
-        ExportKind::Process => "导出进程列表为 CSV",
-        ExportKind::Performance => "导出性能快照为 CSV",
+        ExportKind::Process => tr("导出进程列表为 CSV"),
+        ExportKind::Performance => tr("导出性能快照为 CSV"),
     }
 }
 
 /// 保存对话框的文件类型：(显示名, 通配符)。
 pub fn export_filters() -> [(&'static str, &'static str); 2] {
-    [("CSV 文件", "*.csv"), ("所有文件", "*.*")]
+    [(tr("CSV 文件"), "*.csv"), (tr("所有文件"), "*.*")]
 }
 
 /// 状态栏里的动作名（“操作失败：{动作}（{原因}）”）。
 pub fn export_action() -> &'static str {
-    "导出 CSV"
+    tr("导出 CSV")
 }
 
 /// 复制所选行的动作名。
 pub fn copy_row_action() -> &'static str {
-    "复制所选行"
+    tr("复制所选行")
 }
 
 /// 导出前无法生成表格的原因。
@@ -654,34 +642,34 @@ pub enum ExportError {
 
 pub fn export_error(e: ExportError) -> &'static str {
     match e {
-        ExportError::NoData => "还没有采样到数据，请稍后再试",
-        ExportError::GroupNotReady => "分组视图的窗口信息尚未就绪，请稍后再试",
+        ExportError::NoData => tr("还没有采样到数据，请稍后再试"),
+        ExportError::GroupNotReady => tr("分组视图的窗口信息尚未就绪，请稍后再试"),
     }
 }
 
 /// 复制所选行时没有可复制的行。
 pub fn no_selected_row() -> &'static str {
-    "没有选中的进程"
+    tr("没有选中的进程")
 }
 
 /// 写 CSV 文件失败的原因（系统给出的描述原样显示，见模块说明）。
 pub fn export_write_error(file: &str, e: &SystemError) -> String {
-    format!("无法写入 {file}：{e}")
+    trf("无法写入 {0}：{1}", &[&file, &e])
 }
 
 /// 导出的敏感列名之间的分隔。
 pub fn list_separator() -> &'static str {
-    "、"
+    tr("、")
 }
 
 /// 性能快照的行类型：当前数值，或时间窗口内的曲线数据。
 pub fn perf_row_kind(series: bool) -> &'static str {
-    if series { "曲线" } else { "当前" }
+    if series { tr("曲线") } else { tr("当前") }
 }
 
 /// 性能快照的表头。
 pub fn perf_header() -> [&'static str; 8] {
-    ["类型", "资源", "实例", "指标", "时间", "距今（秒）", "数值", "单位"]
+    [tr("类型"), tr("资源"), tr("实例"), tr("指标"), tr("时间"), tr("距今（秒）"), tr("数值"), tr("单位")]
 }
 
 /// 性能快照里的指标。
@@ -704,18 +692,18 @@ pub enum PerfMetric {
 
 pub fn perf_metric(m: PerfMetric) -> &'static str {
     match m {
-        PerfMetric::CpuUsage | PerfMetric::GpuUsage => "利用率",
-        PerfMetric::MemoryUsed => "已用",
-        PerfMetric::MemoryTotal => "总量",
-        PerfMetric::MemoryPercent => "使用率",
-        PerfMetric::DiskActive => "活动时间",
-        PerfMetric::DiskResponse => "平均响应时间",
-        PerfMetric::DiskRead => "读取速度",
-        PerfMetric::DiskWrite => "写入速度",
-        PerfMetric::NetReceive => "接收",
-        PerfMetric::NetSend => "发送",
-        PerfMetric::GpuDedicated => "专用显存",
-        PerfMetric::GpuShared => "共享显存",
+        PerfMetric::CpuUsage | PerfMetric::GpuUsage => tr("利用率"),
+        PerfMetric::MemoryUsed => tr("已用"),
+        PerfMetric::MemoryTotal => tr("总量"),
+        PerfMetric::MemoryPercent => tr("使用率"),
+        PerfMetric::DiskActive => tr("活动时间"),
+        PerfMetric::DiskResponse => tr("平均响应时间"),
+        PerfMetric::DiskRead => tr("读取速度"),
+        PerfMetric::DiskWrite => tr("写入速度"),
+        PerfMetric::NetReceive => tr("接收"),
+        PerfMetric::NetSend => tr("发送"),
+        PerfMetric::GpuDedicated => tr("专用显存"),
+        PerfMetric::GpuShared => tr("共享显存"),
     }
 }
 
@@ -729,9 +717,9 @@ pub fn perf_unit(m: PerfMetric) -> &'static str {
         PerfMetric::MemoryUsed
         | PerfMetric::MemoryTotal
         | PerfMetric::GpuDedicated
-        | PerfMetric::GpuShared => "字节",
-        PerfMetric::DiskResponse => "毫秒",
-        PerfMetric::DiskRead | PerfMetric::DiskWrite | PerfMetric::NetReceive | PerfMetric::NetSend => "字节/秒",
+        | PerfMetric::GpuShared => tr("字节"),
+        PerfMetric::DiskResponse => tr("毫秒"),
+        PerfMetric::DiskRead | PerfMetric::DiskWrite | PerfMetric::NetReceive | PerfMetric::NetSend => tr("字节/秒"),
     }
 }
 

@@ -3,6 +3,7 @@
 //! 菜单弹出前探测一次（只读句柄，不进入采样热路径）：受保护进程等不可修改的置灰，读不到优先级则不打勾。
 //! 修改后立即补采一次，“优先级”列在下一次采样内更新。日志只记 PID、结果与错误码。
 
+use crate::i18n::tr;
 use super::process_menu::failure;
 use super::*;
 use crate::{AffinityData, CpuBox, ProcessMenu, texts};
@@ -210,7 +211,7 @@ impl Controller {
         let keys = eco_targets(&self.state.borrow().snapshot, key, is_app, std::process::id());
         if keys.is_empty() {
             self.log.borrow_mut().line(format!("效率模式 拒绝 pid={} 原因=受保护", key.pid));
-            self.report(STATUS_ERROR, failure("效率模式", texts::eco_disabled_reason(true)));
+            self.report(STATUS_ERROR, failure(tr("效率模式"), texts::eco_disabled_reason(true)));
             return;
         }
         if keys.len() > 1 {
@@ -270,8 +271,8 @@ impl Controller {
                     self.log.borrow_mut().line(format!(
                         "效率模式 成功 pid={} 目标={} 当前={} 优先级={}",
                         key.pid,
-                        if on { "开" } else { "关" },
-                        if o.enabled { "开" } else { "关" },
+                        if on { tr("开") } else { tr("关") },
+                        if o.enabled { tr("开") } else { tr("关") },
                         o.priority.map_or("?", |p| p.key())
                     ));
                     single = Some(o);
@@ -281,7 +282,7 @@ impl Controller {
                     self.log.borrow_mut().line(format!(
                         "效率模式 失败 pid={} 目标={} 错误码={}",
                         key.pid,
-                        if on { "开" } else { "关" },
+                        if on { tr("开") } else { tr("关") },
                         e.code()
                     ));
                     last_error = Some(e);
@@ -289,7 +290,7 @@ impl Controller {
             }
         }
         match (keys.len(), last_error.as_ref(), single) {
-            (1, Some(e), _) => self.report(STATUS_ERROR, failure("效率模式", &texts::process_control_error(e))),
+            (1, Some(e), _) => self.report(STATUS_ERROR, failure(tr("效率模式"), &texts::process_control_error(e))),
             (1, None, Some(o)) => {
                 let text = if on { texts::eco_enabled(name) } else { texts::eco_disabled(name, o.priority) };
                 self.report(STATUS_ECO, text);
@@ -341,7 +342,7 @@ impl Controller {
                     class.key(),
                     e.code()
                 ));
-                self.report(STATUS_ERROR, failure("设置优先级", &texts::process_control_error(&e)));
+                self.report(STATUS_ERROR, failure(tr("设置优先级"), &texts::process_control_error(&e)));
             }
         }
         // 立即补采一次，“优先级”列在下一次采样内更新。
@@ -378,7 +379,7 @@ impl Controller {
             }
             Err(e) => {
                 self.log.borrow_mut().line(format!("设置亲和性 读取失败 pid={} 错误码={}", key.pid, e.code()));
-                self.report(STATUS_ERROR, failure("设置亲和性", &texts::process_control_error(&e)));
+                self.report(STATUS_ERROR, failure(tr("设置亲和性"), &texts::process_control_error(&e)));
             }
         }
     }

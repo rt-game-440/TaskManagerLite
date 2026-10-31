@@ -124,3 +124,22 @@ _避免使用_：服务进程（容易与“服务”本身混淆）
 **连接（Connection）**：
 一条 TCP 连接、TCP 监听端口或 UDP 端点，取自 `GetExtendedTcpTable` / `GetExtendedUdpTable`（`*_OWNER_PID`），口径与 `netstat -ano` 一致。连接页列出进程名（按 PID 查当前进程快照，查不到显示“—”）、PID、协议、本地地址、远程地址与状态。**协议**一列合并协议与地址族：TCP、TCP6、UDP、UDP6（6 表示 IPv6）。**状态**是 TCP 状态（监听、已建立、等待关闭、等待超时等）；UDP 没有状态与远程地址，显示为空。连接的稳定标识是协议 + 本地端点 + 远程端点 + PID（不含状态），刷新时据此保持选中项。不做反向域名解析。进入连接页才枚举，页面可见时随每次完整采样刷新，离开后不再刷新。
 _避免使用_：端口（只是连接的一部分）、网络会话
+
+**界面语言（Language）**：
+界面文字的语言，目前有简体中文（zh，源语言）与英文（en）。Slint 文案用 `@tr("中文原文")`，译文在 `crates/app/lang/en/LC_MESSAGES/tml-app.po`；Rust 文案用 `i18n::tr` / `trf`（中文原文作 key），译文在 `crates/app/lang/en-rust.json`；核心库不返回显示文案。`--lang <zh|en>` 或环境变量 `TML_LANG` 选择语言，默认中文。
+_避免使用_：区域、地区（语言不等于区域格式）
+
+| 中文 | English |
+| --- | --- |
+| 进程 | Process |
+| 应用 | App |
+| 启动项 | Startup app |
+| 服务 | Service |
+| 连接 | Connection |
+| 宿主进程 | Host process |
+| 关键进程 | Critical process |
+| 结束进程 | End process |
+| 效率模式 | Efficiency mode |
+| 挂起 / 恢复 | Suspend / Resume |
+| 亲和性 | Affinity |
+| 转储文件 | Dump file |

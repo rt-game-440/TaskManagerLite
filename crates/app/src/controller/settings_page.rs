@@ -2,6 +2,7 @@
 //!
 //! 开机启动与接管任务管理器的开关状态以注册表为准，每次进入设置页时重新读取；其余开关以设置文件为准，改动后立即保存。
 
+use crate::i18n::{tr, trf};
 use std::path::Path;
 use std::rc::Rc;
 
@@ -18,10 +19,10 @@ fn autostart_note(status: &Result<Autostart, AutostartError>) -> String {
     match status {
         Ok(Autostart::Off | Autostart::On) => String::new(),
         Ok(Autostart::OtherPath(value)) => {
-            format!("已登记的是另一个位置的程序（{value}），开启后改为当前程序")
+            trf("已登记的是另一个位置的程序（{0}），开启后改为当前程序", &[&value])
         }
-        Ok(Autostart::DisabledBySystem) => "已在 Windows 设置的“启动应用”中被禁用，重新开启即可恢复".into(),
-        Err(e) => format!("无法读取开机启动状态：{}", texts::autostart_error(e)),
+        Ok(Autostart::DisabledBySystem) => tr("已在 Windows 设置的“启动应用”中被禁用，重新开启即可恢复").into(),
+        Err(e) => trf("无法读取开机启动状态：{0}", &[&(texts::autostart_error(e))]),
     }
 }
 
@@ -29,15 +30,15 @@ fn autostart_note(status: &Result<Autostart, AutostartError>) -> String {
 fn taskmgr_note(status: &Result<Registration, IfeoError>, wanted: bool) -> (String, bool) {
     match status {
         Ok(Registration::ThisExe) => (String::new(), false),
-        Ok(Registration::NotRegistered) if wanted => ("登记已被移除，重新开启即可恢复".into(), false),
+        Ok(Registration::NotRegistered) if wanted => (tr("登记已被移除，重新开启即可恢复").into(), false),
         Ok(Registration::NotRegistered) => (String::new(), false),
         Ok(Registration::OtherExe { debugger, exists: true }) => {
-            (format!("已被其他程序接管：{}", texts::debugger_value(debugger)), false)
+            (trf("已被其他程序接管：{0}", &[&(texts::debugger_value(debugger))]), false)
         }
         Ok(Registration::OtherExe { debugger, exists: false }) => {
-            (format!("登记的程序已不存在（{}），开启后改为本程序", texts::debugger_value(debugger)), false)
+            (trf("登记的程序已不存在（{0}），开启后改为本程序", &[&(texts::debugger_value(debugger))]), false)
         }
-        Err(e) => (format!("无法读取登记状态：{}", texts::ifeo_error(e)), true),
+        Err(e) => (trf("无法读取登记状态：{0}", &[&(texts::ifeo_error(e))]), true),
     }
 }
 
@@ -165,7 +166,7 @@ impl Controller {
     fn set_autostart(&self, on: bool) {
         let result = AutostartKey::from_env().and_then(|key| key.set(&exe()?, on));
         self.log.borrow_mut().line(format!("开机启动 设为={on} 结果={result:?}"));
-        self.refresh_autostart(result.err().map(|e| format!("无法修改开机启动：{}", texts::autostart_error(&e))));
+        self.refresh_autostart(result.err().map(|e| trf("无法修改开机启动：{0}", &[&(texts::autostart_error(&e))])));
     }
 
     fn set_theme(&self, mode: i32) {

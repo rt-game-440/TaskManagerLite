@@ -3,6 +3,7 @@
 //! 静态信息（用户名、路径、命令行、架构、是否提权、描述、公司）只在显示了这类列时才读取：
 //! 新出现的进程交给后台线程读一次，结果按进程缓存到进程退出，不进采样热路径。
 
+use crate::i18n::{tr, trf};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -19,28 +20,28 @@ pub const MAX_WIDTH: f32 = 1200.0;
 /// 列标题。
 pub fn title(c: DetailColumn) -> &'static str {
     match c {
-        DetailColumn::Status => "状态",
-        DetailColumn::User => "用户名",
-        DetailColumn::Session => "会话 ID",
-        DetailColumn::Priority => "优先级",
-        DetailColumn::Handles => "句柄",
-        DetailColumn::Threads => "线程",
-        DetailColumn::WorkingSet => "工作集",
-        DetailColumn::PeakWorkingSet => "峰值工作集",
-        DetailColumn::Commit => "提交大小",
-        DetailColumn::CpuTime => "CPU 时间",
-        DetailColumn::StartTime => "启动时间",
-        DetailColumn::Path => "映像路径",
-        DetailColumn::CommandLine => "命令行",
-        DetailColumn::Arch => "架构",
-        DetailColumn::Elevated => "已提权",
-        DetailColumn::Description => "描述",
-        DetailColumn::Company => "公司",
+        DetailColumn::Status => tr("状态"),
+        DetailColumn::User => tr("用户名"),
+        DetailColumn::Session => tr("会话 ID"),
+        DetailColumn::Priority => tr("优先级"),
+        DetailColumn::Handles => tr("句柄"),
+        DetailColumn::Threads => tr("线程"),
+        DetailColumn::WorkingSet => tr("工作集"),
+        DetailColumn::PeakWorkingSet => tr("峰值工作集"),
+        DetailColumn::Commit => tr("提交大小"),
+        DetailColumn::CpuTime => tr("CPU 时间"),
+        DetailColumn::StartTime => tr("启动时间"),
+        DetailColumn::Path => tr("映像路径"),
+        DetailColumn::CommandLine => tr("命令行"),
+        DetailColumn::Arch => tr("架构"),
+        DetailColumn::Elevated => tr("已提权"),
+        DetailColumn::Description => tr("描述"),
+        DetailColumn::Company => tr("公司"),
         DetailColumn::Gpu => "GPU",
-        DetailColumn::EcoMode => "效率模式",
-        DetailColumn::Services => "服务",
-        DetailColumn::Network => "网络",
-        DetailColumn::Signature => "签名",
+        DetailColumn::EcoMode => tr("效率模式"),
+        DetailColumn::Services => tr("服务"),
+        DetailColumn::Network => tr("网络"),
+        DetailColumn::Signature => tr("签名"),
     }
 }
 
@@ -92,12 +93,12 @@ pub fn default_descending(c: DetailColumn) -> bool {
 /// 基本优先级的名称，与原生任务管理器一致；不在常见档位上的显示数值。
 fn priority(base: i32) -> String {
     match base {
-        24.. => "实时".into(),
-        13..=23 => "高".into(),
-        10..=12 => "高于正常".into(),
-        8 | 9 => "正常".into(),
-        6 | 7 => "低于正常".into(),
-        1..=5 => "低".into(),
+        24.. => tr("实时").into(),
+        13..=23 => tr("高").into(),
+        10..=12 => tr("高于正常").into(),
+        8 | 9 => tr("正常").into(),
+        6 | 7 => tr("低于正常").into(),
+        1..=5 => tr("低").into(),
         other => other.to_string(),
     }
 }
@@ -117,9 +118,9 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) ->
         |f: fn(&StaticInfo) -> Option<&str>| info.and_then(f).unwrap_or_default().to_string();
     match c {
         DetailColumn::Status => if n.suspended {
-            "已挂起"
+            tr("已挂起")
         } else {
-            "正在运行"
+            tr("正在运行")
         }
         .into(),
         DetailColumn::Session => n.session_id.to_string(),
@@ -142,8 +143,8 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) ->
             .map(|a| a.label())
             .unwrap_or_default(),
         DetailColumn::Elevated => match info.and_then(|i| i.elevated) {
-            Some(true) => "是".into(),
-            Some(false) => "否".into(),
+            Some(true) => tr("是").into(),
+            Some(false) => tr("否").into(),
             None => String::new(),
         },
         DetailColumn::Description => text(|i| i.description.as_deref()),
@@ -153,8 +154,8 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) ->
         DetailColumn::Signature => signature_text(info),
         // 没有读数（进程打不开或系统不支持）留空；应用行显示应用自身进程的状态。
         DetailColumn::EcoMode => match p.eco_mode {
-            Some(true) => "已启用".into(),
-            Some(false) => "未启用".into(),
+            Some(true) => tr("已启用").into(),
+            Some(false) => tr("未启用").into(),
             None => String::new(),
         },
         DetailColumn::Services => p.services.as_deref().map(services_text).unwrap_or_default(),
@@ -167,10 +168,10 @@ pub fn signature_text(info: Option<&StaticInfo>) -> String {
     let Some(slot) = &info.signature else { return String::new() };
     match slot.get() {
         None => "…".into(),
-        Some(Signature::Signed(name)) if name.is_empty() => "已验证".into(),
-        Some(Signature::Signed(name)) => format!("已验证 · {name}"),
-        Some(Signature::Unsigned) => "未签名".into(),
-        Some(Signature::Invalid) => "校验失败".into(),
+        Some(Signature::Signed(name)) if name.is_empty() => tr("已验证").into(),
+        Some(Signature::Signed(name)) => trf("已验证 · {0}", &[&name]),
+        Some(Signature::Unsigned) => tr("未签名").into(),
+        Some(Signature::Invalid) => tr("校验失败").into(),
     }
 }
 
@@ -179,9 +180,9 @@ pub const SERVICES_SHOWN: usize = 6;
 
 /// 服务名用“、”连接；超过 [`SERVICES_SHOWN`] 个时只列前几个并注明总数。界面与 CSV 导出共用。
 pub fn services_text(names: &[String]) -> String {
-    let shown = names.iter().take(SERVICES_SHOWN).map(String::as_str).collect::<Vec<_>>().join("、");
+    let shown = names.iter().take(SERVICES_SHOWN).map(String::as_str).collect::<Vec<_>>().join(tr("、"));
     if names.len() > SERVICES_SHOWN {
-        format!("{shown}…（共 {} 个）", names.len())
+        trf("{0}…（共 {1} 个）", &[&shown, &(names.len())])
     } else {
         shown
     }

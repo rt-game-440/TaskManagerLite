@@ -1,5 +1,6 @@
 //! 界面线程上的状态与交互逻辑。
 
+use crate::i18n::{tr, trf};
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -679,7 +680,7 @@ impl Controller {
         }
         drop(log);
         if self.state.borrow().first_data {
-            self.log_history("保存设置");
+            self.log_history(tr("保存设置"));
         }
     }
 
@@ -701,7 +702,7 @@ impl Controller {
         drop(s);
         self.sampler.send(Command::Visible(visible));
         if restored {
-            self.force_repaint("恢复可见");
+            self.force_repaint(tr("恢复可见"));
         }
     }
 
@@ -812,9 +813,9 @@ impl Controller {
         });
         self.tray_failed.set(tray.is_none());
         self.log.borrow_mut().line(if tray.is_some() {
-            "托盘图标已创建"
+            tr("托盘图标已创建")
         } else {
-            "托盘图标创建失败"
+            tr("托盘图标创建失败")
         });
         let failed = tray.is_none();
         *self.tray.borrow_mut() = tray;
@@ -1185,7 +1186,7 @@ impl Controller {
                     (_, ResourceKind::Gpu) => gpu.map(|g| g.name.clone()).unwrap_or_default(),
                     _ => network.map(|n| format!("{} · 链路 {:.0} Mbps{}\n{}\n{}", crate::texts::connection_kind(n.connection), n.link_speed as f64 / 1e6,
                         if n.ssid.is_empty() { String::new() } else { format!(" · SSID {}", n.ssid) },
-                        if n.addresses.is_empty() { "地址不可用" } else { &n.addresses }, s.resources.network_stats(&n.id, now, window))).unwrap_or_default(),
+                        if n.addresses.is_empty() { tr("地址不可用") } else { &n.addresses }, s.resources.network_stats(&n.id, now, window))).unwrap_or_default(),
                 };
 
                 Resource {
@@ -1202,19 +1203,11 @@ impl Controller {
                                 .iter()
                                 .map(|v| v.capacity.saturating_sub(v.free))
                                 .sum::<u64>();
-                            format!(
-                                "{} · {} · 容量 {} · {}\n已挂载卷合计：已用 {} · 可用 {}",
-                                d.model,
-                                crate::texts::media_type(d.media_type),
-                                format::gigabytes(d.capacity),
-                                if d.system {
-                                    "系统盘"
+                            trf("{0} · {1} · 容量 {2} · {3}\n已挂载卷合计：已用 {4} · 可用 {5}", &[&d.model, &(crate::texts::media_type(d.media_type)), &(format::gigabytes(d.capacity)), &(if d.system {
+                                    tr("系统盘")
                                 } else {
-                                    "非系统盘"
-                                },
-                                format::gigabytes(used),
-                                format::gigabytes(free)
-                            )
+                                    tr("非系统盘")
+                                }), &(format::gigabytes(used)), &(format::gigabytes(free))])
                         })
                         .unwrap_or_default()
                         .into(),
@@ -1223,14 +1216,7 @@ impl Controller {
                             d.volumes
                                 .iter()
                                 .map(|v| {
-                                    SharedString::from(format!(
-                                        "{}  {}    容量 {}    已用 {}    可用 {}",
-                                        v.mount,
-                                        v.filesystem,
-                                        format::gigabytes(v.capacity),
-                                        format::gigabytes(v.capacity.saturating_sub(v.free)),
-                                        format::gigabytes(v.free)
-                                    ))
+                                    SharedString::from(trf("{0}  {1}    容量 {2}    已用 {3}    可用 {4}", &[&v.mount, &v.filesystem, &(format::gigabytes(v.capacity)), &(format::gigabytes(v.capacity.saturating_sub(v.free))), &(format::gigabytes(v.free))]))
                                 })
                                 .collect::<Vec<_>>()
                         })
