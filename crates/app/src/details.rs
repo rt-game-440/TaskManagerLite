@@ -38,6 +38,7 @@ pub fn title(c: DetailColumn) -> &'static str {
         DetailColumn::Gpu => "GPU",
         DetailColumn::EcoMode => "效率模式",
         DetailColumn::Services => "服务",
+        DetailColumn::Network => "网络",
     }
 }
 
@@ -47,6 +48,7 @@ pub fn default_width(c: DetailColumn) -> f32 {
         DetailColumn::Session | DetailColumn::Threads | DetailColumn::Arch | DetailColumn::Gpu => 72.0,
         DetailColumn::Elevated | DetailColumn::Handles => 76.0,
         DetailColumn::EcoMode => 88.0,
+        DetailColumn::Network => 96.0,
         DetailColumn::Services => 180.0,
         DetailColumn::Status | DetailColumn::Priority | DetailColumn::CpuTime => 88.0,
         DetailColumn::WorkingSet | DetailColumn::PeakWorkingSet | DetailColumn::Commit => 108.0,
@@ -71,6 +73,7 @@ pub fn right_aligned(c: DetailColumn) -> bool {
             | DetailColumn::Commit
             | DetailColumn::CpuTime
             | DetailColumn::Gpu
+            | DetailColumn::Network
     )
 }
 
@@ -103,8 +106,8 @@ pub fn cpu_time(t: u64) -> String {
 }
 
 /// 单元格文字。静态信息尚未读到或读不到时为空。
-/// `gpu`：GPU 列要显示的值——分组视图的应用行是自身加后代的合计，其余行就是进程自己的 `gpu_usage`。
-pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>) -> String {
+/// `gpu`、`net`：GPU 列与网络列要显示的值——分组视图的应用行是自身加后代的合计，其余行就是进程自己的 `gpu_usage` / `net_rate`。
+pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) -> String {
     let n = &p.counters;
     let info = p.info.as_deref();
     let text =
@@ -143,6 +146,7 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>) -> String {
         DetailColumn::Description => text(|i| i.description.as_deref()),
         DetailColumn::Company => text(|i| i.company.as_deref()),
         DetailColumn::Gpu => format::gpu_percent(gpu),
+        DetailColumn::Network => format::net_rate(net),
         // 没有读数（进程打不开或系统不支持）留空；应用行显示应用自身进程的状态。
         DetailColumn::EcoMode => match p.eco_mode {
             Some(true) => "已启用".into(),
@@ -360,6 +364,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
@@ -370,9 +375,9 @@ mod tests {
             },
             info: None,
         };
-        assert_eq!(cell(&p, DetailColumn::Status, None), "已挂起");
-        assert_eq!(cell(&p, DetailColumn::Handles, None), "12");
-        assert_eq!(cell(&p, DetailColumn::User, None), "");
+        assert_eq!(cell(&p, DetailColumn::Status, None, None), "已挂起");
+        assert_eq!(cell(&p, DetailColumn::Handles, None, None), "12");
+        assert_eq!(cell(&p, DetailColumn::User, None, None), "");
         let p = Process {
             info: Some(Arc::new(StaticInfo {
                 elevated: Some(true),
@@ -380,7 +385,7 @@ mod tests {
             })),
             ..p
         };
-        assert_eq!(cell(&p, DetailColumn::Elevated, None), "是");
+        assert_eq!(cell(&p, DetailColumn::Elevated, None, None), "是");
     }
 
     #[test]
@@ -393,32 +398,33 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
             counters: Default::default(),
             info: None,
         };
-        assert_eq!(cell(&p, DetailColumn::EcoMode, None), "");
+        assert_eq!(cell(&p, DetailColumn::EcoMode, None, None), "");
         let on = Process { eco_mode: Some(true), ..p.clone() };
         let off = Process { eco_mode: Some(false), ..p.clone() };
-        assert_eq!(cell(&on, DetailColumn::EcoMode, None), "已启用");
-        assert_eq!(cell(&off, DetailColumn::EcoMode, None), "未启用");
+        assert_eq!(cell(&on, DetailColumn::EcoMode, None, None), "已启用");
+        assert_eq!(cell(&off, DetailColumn::EcoMode, None, None), "未启用");
         // 服务列（#85）：不承载服务为空；多个服务用“、”连接；过多时截断并注明总数。
-        assert_eq!(cell(&p, DetailColumn::Services, None), "");
+        assert_eq!(cell(&p, DetailColumn::Services, None, None), "");
         let names = |n: usize| (1..=n).map(|i| format!("S{i}")).collect::<Vec<_>>();
         let hosting = |n: usize| Process { services: Some(names(n).into()), ..p.clone() };
-        assert_eq!(cell(&hosting(1), DetailColumn::Services, None), "S1");
-        assert_eq!(cell(&hosting(3), DetailColumn::Services, None), "S1、S2、S3");
-        assert_eq!(cell(&hosting(SERVICES_SHOWN), DetailColumn::Services, None), "S1、S2、S3、S4、S5、S6");
-        assert_eq!(cell(&hosting(SERVICES_SHOWN + 4), DetailColumn::Services, None), "S1、S2、S3、S4、S5、S6…（共 10 个）");
+        assert_eq!(cell(&hosting(1), DetailColumn::Services, None, None), "S1");
+        assert_eq!(cell(&hosting(3), DetailColumn::Services, None, None), "S1、S2、S3");
+        assert_eq!(cell(&hosting(SERVICES_SHOWN), DetailColumn::Services, None, None), "S1、S2、S3、S4、S5、S6");
+        assert_eq!(cell(&hosting(SERVICES_SHOWN + 4), DetailColumn::Services, None, None), "S1、S2、S3、S4、S5、S6…（共 10 个）");
         assert!(needs_services(&[Shown { column: DetailColumn::Services, width: 180.0 }]));
         assert!(!needs_services(&[Shown { column: DetailColumn::Gpu, width: 72.0 }]));
         assert!(needs_eco(&[Shown { column: DetailColumn::EcoMode, width: 88.0 }]));
         assert!(!needs_eco(&[Shown { column: DetailColumn::Gpu, width: 72.0 }]));
-        assert_eq!(cell(&p, DetailColumn::Gpu, p.gpu_usage), "—");
-        assert_eq!(cell(&p, DetailColumn::Gpu, Some(0.0)), "0%");
-        assert_eq!(cell(&p, DetailColumn::Gpu, Some(37.46)), "37.5%");
+        assert_eq!(cell(&p, DetailColumn::Gpu, p.gpu_usage, None), "—");
+        assert_eq!(cell(&p, DetailColumn::Gpu, Some(0.0), None), "0%");
+        assert_eq!(cell(&p, DetailColumn::Gpu, Some(37.46), None), "37.5%");
         assert!(right_aligned(DetailColumn::Gpu) && default_descending(DetailColumn::Gpu));
     }
 }

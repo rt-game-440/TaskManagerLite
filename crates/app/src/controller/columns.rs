@@ -223,15 +223,15 @@ impl Controller {
     }
 
     /// 当前进程行的详细信息单元格文字。
-    /// `gpu`：GPU 列的值（应用行为合计，其余行为进程自己的）。
-    pub(super) fn detail_cells(s: &State, p: &tml_core::Process, gpu: Option<f32>) -> ModelRc<SharedString> {
+    /// `gpu`、`net`：GPU 列与网络列的值（应用行为合计，其余行为进程自己的）。
+    pub(super) fn detail_cells(s: &State, p: &tml_core::Process, gpu: Option<f32>, net: Option<f64>) -> ModelRc<SharedString> {
         if s.details.is_empty() {
             return ModelRc::default();
         }
         ModelRc::new(VecModel::from(
             s.details
                 .iter()
-                .map(|d| SharedString::from(details::cell(p, d.column, gpu)))
+                .map(|d| SharedString::from(details::cell(p, d.column, gpu, net)))
                 .collect::<Vec<_>>(),
         ))
     }

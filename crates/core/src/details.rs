@@ -56,10 +56,12 @@ pub enum DetailColumn {
     EcoMode,
     /// 进程承载的服务（#85）；只有显示这一列时采样器才（节流地）枚举服务。
     Services,
+    /// 进程的网络收 + 发速率（#65）；来自 ETW，需提权并开启“更准确的磁盘速率”，否则显示“—”。
+    Network,
 }
 
 impl DetailColumn {
-    pub const ALL: [Self; 20] = [
+    pub const ALL: [Self; 21] = [
         Self::Status,
         Self::User,
         Self::Session,
@@ -80,6 +82,7 @@ impl DetailColumn {
         Self::Gpu,
         Self::EcoMode,
         Self::Services,
+        Self::Network,
     ];
 
     /// 设置文件里使用的名字。
@@ -105,6 +108,7 @@ impl DetailColumn {
             Self::Gpu => "gpu",
             Self::EcoMode => "eco_mode",
             Self::Services => "services",
+            Self::Network => "network",
         }
     }
 
@@ -434,6 +438,11 @@ pub(crate) fn compare(a: &Process, b: &Process, col: DetailColumn) -> Ordering {
         },
         // 没有读数（None）< 未启用 < 已启用。
         DetailColumn::EcoMode => a.eco_mode.cmp(&b.eco_mode),
+        // 没有读数（None）排在最小一端，0 比没有读数大。
+        DetailColumn::Network => match (a.net_rate, b.net_rate) {
+            (Some(x), Some(y)) => x.total_cmp(&y),
+            (x, y) => x.is_some().cmp(&y.is_some()),
+        },
         // 没有服务（None）排在最小一端，其余按服务名列表（不区分大小写）比较。
         DetailColumn::Services => {
             let get = |p: &Process| p.services.as_ref().map(|s| s.iter().map(|n| n.to_lowercase()).collect::<Vec<_>>());
@@ -486,6 +495,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: s.map(|v| v.iter().map(|n| n.to_string()).collect::<Vec<_>>().into()),
             critical: false,

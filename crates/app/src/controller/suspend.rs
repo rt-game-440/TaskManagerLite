@@ -312,6 +312,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical,
@@ -459,8 +460,8 @@ mod tests {
         // 状态列文字由详细信息列负责：已挂起 / 正在运行。
         let col = tml_core::DetailColumn::Status;
         let mut p = proc(1, 0, "x", true, false);
-        assert_eq!(crate::details::cell(&p, col, None), "已挂起");
+        assert_eq!(crate::details::cell(&p, col, None, None), "已挂起");
         p.counters.suspended = false;
-        assert_eq!(crate::details::cell(&p, col, None), "正在运行");
+        assert_eq!(crate::details::cell(&p, col, None, None), "正在运行");
     }
 }

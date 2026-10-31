@@ -14,6 +14,7 @@ use windows::Win32::Foundation::{CloseHandle, ERROR_INVALID_PARAMETER, ERROR_MOR
 use windows::Win32::System::Diagnostics::Debug::{EXCEPTION_POINTERS, SetUnhandledExceptionFilter};
 use windows::Win32::System::Diagnostics::Etw::{
     CONTROLTRACE_HANDLE, CloseTrace, ControlTraceW, EVENT_RECORD, EVENT_TRACE_CONTROL_STOP, EVENT_TRACE_FLAG_DISK_IO,
+    EVENT_TRACE_FLAG_NETWORK_TCPIP,
     EVENT_TRACE_FLAG_THREAD, EVENT_TRACE_LOGFILEW, EVENT_TRACE_PROPERTIES, EVENT_TRACE_REAL_TIME_MODE,
     EVENT_TRACE_SYSTEM_LOGGER_MODE, OpenTraceW, PROCESS_TRACE_MODE_EVENT_RECORD, PROCESS_TRACE_MODE_REAL_TIME,
     ProcessTrace, QueryAllTracesW, StartTraceW, WNODE_FLAG_TRACED_GUID,
@@ -26,7 +27,7 @@ use windows::Win32::System::Threading::{
 use windows::core::{HSTRING, PCWSTR, PWSTR};
 
 use crate::control::{create_time, is_elevated, open};
-use crate::diskio::{DISK_IO_GUID, DiskAggregator, Event, THREAD_GUID, Window, parse};
+use crate::diskio::{DISK_IO_GUID, DiskAggregator, Event, TCP_IP_GUID, THREAD_GUID, UDP_IP_GUID, Window, parse};
 use crate::system::filetime;
 
 /// 会话名前缀。完整名称：`TaskManagerLite-DiskIo-<PID>-<创建时间十六进制>-<序号>`。
@@ -368,7 +369,7 @@ fn run_session(shared: &Arc<Shared>, name: &str) {
         r.MaximumBuffers = 4 * cpus;
         r.FlushTimer = 1; // 实时模式下缓冲区最迟 1 秒送达消费者
         r.LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE;
-        r.EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_THREAD;
+        r.EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_THREAD | EVENT_TRACE_FLAG_NETWORK_TCPIP;
     }
     let mut handle = CONTROLTRACE_HANDLE::default();
     let err = unsafe { StartTraceW(&mut handle, &HSTRING::from(name), p.ptr()) }.0;
@@ -427,7 +428,7 @@ unsafe extern "system" fn on_event(record: *mut EVENT_RECORD) {
     // 其所属 Arc 在 ProcessTrace 返回前一直存活。
     let r = unsafe { &*record };
     let provider = r.EventHeader.ProviderId.to_u128();
-    if provider != DISK_IO_GUID && provider != THREAD_GUID {
+    if provider != DISK_IO_GUID && provider != THREAD_GUID && provider != TCP_IP_GUID && provider != UDP_IP_GUID {
         return;
     }
     let shared = unsafe { &*(r.UserContext as *const Shared) };

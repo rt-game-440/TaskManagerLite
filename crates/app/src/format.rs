@@ -34,6 +34,14 @@ pub fn disk_rate(bytes_per_sec: f64) -> String {
     if mb < 0.05 { "0 MB/s".into() } else { format!("{mb:.1} MB/s") }
 }
 
+/// 进程网络速率；没有读数（未提权、未开启“更准确的磁盘速率”或会话未就绪）为“—”。
+pub fn net_rate(v: Option<f64>) -> String {
+    v.map_or_else(|| "—".into(), |b| {
+        let mbps = b * 8.0 / 1_000_000.0;
+        if mbps < 0.05 { "0 Mbps".into() } else { format!("{mbps:.1} Mbps") }
+    })
+}
+
 /// 自动量程：向上取到 1、2、5 × 10ⁿ，最小 `floor`。
 pub fn nice_scale(max: f64, floor: f64) -> f64 {
     let v = max.max(floor);

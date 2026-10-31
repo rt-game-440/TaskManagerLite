@@ -227,10 +227,10 @@ fn group_title(h: GroupHeader) -> String {
     format!("{} ({})", crate::texts::group_name(h.group), h.count)
 }
 
-/// 进程行显示的 (CPU, 内存, 磁盘, GPU)：分组视图的应用行是自身加全部后代的合计，其余行是各自的值。
-fn row_values(p: &Process, r: &ViewRow) -> (f32, u64, f64, Option<f32>) {
-    r.totals.map_or((p.cpu_usage, p.private_working_set, p.disk_rate, p.gpu_usage), |t| {
-        (t.cpu_usage, t.private_working_set, t.disk_rate, t.gpu_usage)
+/// 进程行显示的 (CPU, 内存, 磁盘, GPU, 网络)：分组视图的应用行是自身加全部后代的合计，其余行是各自的值。
+fn row_values(p: &Process, r: &ViewRow) -> (f32, u64, f64, Option<f32>, Option<f64>) {
+    r.totals.map_or((p.cpu_usage, p.private_working_set, p.disk_rate, p.gpu_usage, p.net_rate), |t| {
+        (t.cpu_usage, t.private_working_set, t.disk_rate, t.gpu_usage, t.net_rate)
     })
 }
 
@@ -1321,7 +1321,7 @@ impl Controller {
                     selected_index = i as i32;
                 }
                 // 分组视图的应用行显示“自身 + 全部后代”的合计，其余行显示各自的值。
-                let (cpu, memory, disk, gpu) = row_values(p, r);
+                let (cpu, memory, disk, gpu, net) = row_values(p, r);
                 let [cpu_text, memory_text, disk_text] = basic_texts(cpu, memory, disk);
                 ProcRow {
                     name: p.name.as_str().into(),
@@ -1342,7 +1342,7 @@ impl Controller {
                         .cloned()
                         .unwrap_or_else(|| self.blank_icon.clone()),
                     header: false,
-                    extra: Self::detail_cells(s, p, gpu),
+                    extra: Self::detail_cells(s, p, gpu, net),
                 }
             })
             .collect();
@@ -1581,6 +1581,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,

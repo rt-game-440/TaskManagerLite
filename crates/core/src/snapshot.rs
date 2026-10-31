@@ -28,6 +28,8 @@ pub struct Process {
     /// `None`：未显示 GPU 列（不聚合）、GPU 计数器不可用或尚无有效基线；有计数器但进程无负载时为 `Some(0.0)`。
     /// 由采样器在 `Sampler::track_gpu_processes` 开启时填入。
     pub gpu_usage: Option<f32>,
+    /// 网络收 + 发字节/秒（TCP + UDP，来自 ETW，见 ADR-0006）。`None`：未启用“更准确的磁盘速率”、未提权或会话未就绪。
+    pub net_rate: Option<f64>,
     /// 是否处于效率模式（EcoQoS，#68）。`None`：未显示“效率模式”列（不读取）、系统不支持或进程打不开。
     /// 由采样器在 `Sampler::track_eco_mode` 开启时填入。
     pub eco_mode: Option<bool>,
@@ -128,6 +130,7 @@ impl Baseline {
                 private_working_set: r.private_working_set,
                 disk_rate,
                 gpu_usage: None,
+                net_rate: None,
                 eco_mode: None,
                 services: None,
                 critical,

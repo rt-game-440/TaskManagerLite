@@ -117,7 +117,7 @@ pub fn process_table(
             continue;
         }
         let p = &snapshot.processes[r.index];
-        let (cpu, memory, disk, gpu) = row_values(p, r);
+        let (cpu, memory, disk, gpu, net) = row_values(p, r);
         let mut cells = Vec::with_capacity(header.len());
         if mode == ViewMode::Group {
             cells.push(group.map_or("", texts::group_name).to_owned());
@@ -128,7 +128,7 @@ pub fn process_table(
         cells.push(p.name.clone());
         cells.push(p.key.pid.to_string());
         cells.extend(basic_texts(cpu, memory, disk));
-        cells.extend(details.iter().map(|d| details::cell(p, d.column, gpu)));
+        cells.extend(details.iter().map(|d| details::cell(p, d.column, gpu, net)));
         rows.push((p.key, cells));
     }
     ProcessTable { header, rows }
@@ -515,6 +515,7 @@ mod tests {
             private_working_set: u64::from(pid) * 1024 * 1024,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
@@ -589,7 +590,7 @@ mod tests {
         let t = process_table(&snap, &view, ViewMode::Flat, &d, &titles());
         assert_eq!(t.header[5], "服务");
         let by_pid = |pid: &str| t.rows.iter().find(|(_, c)| c[1] == pid).unwrap().1[5].clone();
-        assert_eq!(by_pid("10"), details::cell(&snap.processes[1], DetailColumn::Services, None));
+        assert_eq!(by_pid("10"), details::cell(&snap.processes[1], DetailColumn::Services, None, None));
         assert_eq!(by_pid("10"), "Svc1、Svc2、Svc3、Svc4、Svc5、Svc6…（共 8 个）");
         assert_eq!(by_pid("11"), "Dhcp、Dnscache");
         assert_eq!(by_pid("1"), "");
