@@ -49,7 +49,7 @@ pub fn apply_slint() {
 }
 
 /// 启动时按 `--lang <键>` 或环境变量 `TML_LANG` 选择语言（语言设置项见本地化 3/3），默认中文。
-pub fn init_from_env() {
+pub fn init_from_env() -> bool {
     let mut args = std::env::args();
     let mut chosen = None;
     while let Some(a) = args.next() {
@@ -60,6 +60,35 @@ pub fn init_from_env() {
     let chosen = chosen.or_else(|| std::env::var("TML_LANG").ok());
     if let Some(l) = chosen.as_deref().and_then(Lang::parse) {
         set_lang(l);
+        return true;
+    }
+    false
+}
+
+/// 设置里的语言选项（0 跟随系统，1 中文，2 English）对应的实际语言。
+pub fn resolve(option: i32) -> Lang {
+    match option {
+        1 => Lang::Zh,
+        2 => Lang::En,
+        _ => system_lang(),
+    }
+}
+
+/// Windows 用户界面语言首选项的第一项：中文系（zh-*）用中文，其他（含读不到）用英文。
+pub fn system_lang() -> Lang {
+    use windows::Win32::Globalization::{GetUserPreferredUILanguages, MUI_LANGUAGE_NAME};
+    let mut count = 0u32;
+    let mut len = 0u32;
+    unsafe {
+        if GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &mut count, None, &mut len).is_err() || len == 0 {
+            return Lang::En;
+        }
+        let mut buf = vec![0u16; len as usize];
+        if GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &mut count, Some(windows::core::PWSTR(buf.as_mut_ptr())), &mut len).is_err() {
+            return Lang::En;
+        }
+        let end = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+        Lang::parse(&String::from_utf16_lossy(&buf[..end])).unwrap_or(Lang::En)
     }
 }
 

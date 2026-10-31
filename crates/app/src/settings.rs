@@ -127,6 +127,8 @@ pub struct Settings {
     pub close_to_tray: bool,
     /// 主题：0 跟随系统，1 浅色，2 深色。
     pub theme: i32,
+    /// 界面语言：0 跟随系统，1 简体中文，2 English（缺省按跟随系统）。
+    pub language: i32,
     /// 左侧边栏折叠为仅图标。默认展开；窗口过窄时界面会自行收成图标，不改这个值。
     pub sidebar_collapsed: bool,
     pub mini: MiniSettings,
@@ -160,6 +162,7 @@ impl Default for Settings {
             background_sampling: false,
             close_to_tray: false,
             theme: 0,
+            language: 0,
             sidebar_collapsed: false,
             mini: MiniSettings::default(),
             run_history: Vec::new(),
@@ -202,6 +205,7 @@ const KNOWN: &[&str] = &[
     "always_on_top",
     "replace_taskmgr",
     "accurate_disk_io",
+    "language",
     "highlight_changes",
     "highlight_ms",
     "row_marks",
@@ -216,6 +220,9 @@ const KNOWN: &[&str] = &[
 
 /// `theme` 字段的取值，下标即 [`Settings::theme`]。
 const THEMES: [&str; 3] = ["system", "light", "dark"];
+
+/// `language` 字段的取值，下标即 [`Settings::language`]。
+const LANGUAGES: [&str; 3] = ["system", "zh", "en"];
 
 fn int<T: TryFrom<i64>>(o: &Map<String, Value>, key: &str) -> Option<T> {
     T::try_from(o.get(key)?.as_i64()?).ok()
@@ -359,6 +366,9 @@ impl Settings {
         if let Some(t) = o.get("theme").and_then(Value::as_str).and_then(|t| THEMES.iter().position(|&n| n == t)) {
             s.theme = t as i32;
         }
+        if let Some(t) = o.get("language").and_then(Value::as_str).and_then(|t| LANGUAGES.iter().position(|&n| n == t)) {
+            s.language = t as i32;
+        }
         if let Some(m) = o.get("mini").and_then(Value::as_object) {
             let flag = |key: &str, default: bool| m.get(key).and_then(Value::as_bool).unwrap_or(default);
             s.mini.active = flag("active", false);
@@ -468,6 +478,7 @@ impl Settings {
         o.insert("close_to_tray".into(), self.close_to_tray.into());
         o.insert("sidebar_collapsed".into(), self.sidebar_collapsed.into());
         o.insert("theme".into(), THEMES[self.theme.clamp(0, 2) as usize].into());
+        o.insert("language".into(), LANGUAGES[self.language.clamp(0, 2) as usize].into());
         let mut m = Map::new();
         m.insert("active".into(), self.mini.active.into());
         if let Some((x, y)) = self.mini.position {
@@ -580,6 +591,7 @@ mod tests {
                 Shown { column: DetailColumn::Handles, width: 76.0 },
             ],
             accurate_disk_io: true,
+            language: 2,
             highlight_changes: false,
             highlight_ms: 3000,
             row_marks: true,
@@ -701,6 +713,13 @@ mod tests {
         assert_eq!(parse(r#"{"theme": "blue"}"#).theme, 0);
         assert_eq!(parse(r#"{"theme": 2}"#).theme, 0);
         assert!(Settings { theme: 1, ..Settings::default() }.to_json().contains(r#""theme": "light""#));
+        // 语言：缺字段 / 未知值按跟随系统，写出为字符串键。
+        assert_eq!(Settings::default().language, 0);
+        assert_eq!(parse(r#"{"theme": "dark"}"#).language, 0);
+        assert_eq!(parse(r#"{"language": "zh"}"#).language, 1);
+        assert_eq!(parse(r#"{"language": "en"}"#).language, 2);
+        assert_eq!(parse(r#"{"language": "fr"}"#).language, 0);
+        assert!(Settings { language: 2, ..Settings::default() }.to_json().contains(r#""language": "en""#));
     }
 
     #[test]

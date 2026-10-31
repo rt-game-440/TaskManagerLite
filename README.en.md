@@ -38,6 +38,10 @@ A Windows Task Manager rewritten in Rust with [Slint](https://slint.dev): fast c
 
 Measured startup time and idle overhead are in [ADR 0002](docs/adr/0002-software-renderer-default.md) (Chinese).
 
+## Language
+
+Settings → Appearance → Language offers Follow system, 简体中文 and English, applied immediately. Following the system uses the Windows display language (Chinese systems get Simplified Chinese, everything else English). See [ADR 0007](docs/adr/0007-language.md).
+
 ## Download
 
 Get the installer `TaskManagerLite-<version>-setup.exe` from [GitHub Releases](https://github.com/djp440/TaskManagerLite/releases); the `.sha256` file next to it can be used to verify the download. It installs to `Program Files` (administrator approval required) and can optionally replace Windows Task Manager; uninstalling undoes the replacement. The UI is in Chinese.

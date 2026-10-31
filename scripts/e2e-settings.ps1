@@ -236,6 +236,18 @@ try {
     Check (-not (& $topmost $app)) '再次启动时不置顶'
     Close-App $app
 
+    '== 5g2. 语言：language 字段读入后原样写回，缺字段的旧文件按跟随系统（#89） =='
+    $dir = New-Dir 'language'
+    $settingsFile = Join-Path $dir 'settings.json'
+    '{ "language": "en" }' | Set-Content -Encoding utf8 $settingsFile
+    $app = Start-App $dir
+    Close-App $app
+    Check ((Get-Content $settingsFile -Raw | ConvertFrom-Json).language -eq 'en') 'language = en 被保留并写回'
+    '{ "page": 0 }' | Set-Content -Encoding utf8 $settingsFile
+    $app = Start-App $dir
+    Close-App $app
+    Check ((Get-Content $settingsFile -Raw | ConvertFrom-Json).language -eq 'system') '旧文件缺 language 字段时写回 system'
+
     '== 5h. 详细信息列：顺序、宽度与按详细信息列排序被恢复并写回；排序列未显示时回到默认排序 =='
     $dir = New-Dir 'details'
     $settingsFile = Join-Path $dir 'settings.json'

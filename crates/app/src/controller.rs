@@ -867,6 +867,15 @@ impl Controller {
         })
     }
 
+    /// 语言切换后重算带 Rust 文案的部分：托盘提示与进程列表。
+    fn refresh_after_language(&self) {
+        {
+            let s = self.state.borrow();
+            self.update_tray_tip(&s);
+        }
+        self.refresh_rows();
+    }
+
     fn update_tray_tip(&self, s: &State) {
         if let Some(tray) = &*self.tray.borrow() {
             tray.set_tip(&tray::tooltip(self.tray_reading(s), s.tray_sampling()));

@@ -53,6 +53,7 @@ impl Controller {
             let s = self.settings.borrow();
             data.set_close_to_tray(s.close_to_tray);
             data.set_theme(s.theme);
+            data.set_language(s.language);
             data.set_background_sampling(s.background_sampling);
             data.set_highlight_changes(s.highlight_changes);
             data.set_row_marks(s.row_marks);
@@ -100,6 +101,12 @@ impl Controller {
                 c.sampler.send(Command::Services(services));
                 c.refresh_rows();
                 c.save_settings();
+            }
+        });
+        let c = Rc::downgrade(self);
+        data.on_language_selected(move |option| {
+            if let Some(c) = c.upgrade() {
+                c.set_language(option);
             }
         });
         let c = Rc::downgrade(self);
@@ -167,6 +174,15 @@ impl Controller {
         let result = AutostartKey::from_env().and_then(|key| key.set(&exe()?, on));
         self.log.borrow_mut().line(format!("开机启动 设为={on} 结果={result:?}"));
         self.refresh_autostart(result.err().map(|e| trf("无法修改开机启动：{0}", &[&(texts::autostart_error(&e))])));
+    }
+
+    /// 切换界面语言：Slint 文案由内置翻译立即刷新，Rust 文案（状态栏、托盘等）下一次刷新时按新语言重算。
+    fn set_language(&self, option: i32) {
+        let option = option.clamp(0, 2);
+        self.settings.borrow_mut().language = option;
+        crate::i18n::set_lang(crate::i18n::resolve(option));
+        self.save_settings();
+        self.refresh_after_language();
     }
 
     fn set_theme(&self, mode: i32) {

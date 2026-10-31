@@ -16,6 +16,8 @@ export global SettingsData {
     // 主题：0 跟随系统，1 浅色，2 深色。
     in-out property <int> theme;
     callback theme-selected(int);
+    in-out property <int> language;
+    callback language-selected(int);
 
     // 进程列表：新启动 / 刚退出的行短暂高亮，行首类型色条。
     in-out property <bool> highlight-changes;
@@ -219,6 +221,17 @@ export component SettingsPage inherits Rectangle {
 
             SettingGroup {
                 title: @tr("外观");
+                SettingRow {
+                    title: @tr("语言");
+                    description: @tr("跟随系统时按 Windows 的显示语言选择，中文系统用简体中文，其他用 English。");
+                    SegmentedControl {
+                        model: [@tr("跟随系统"), @tr("简体中文"), "English"];
+                        current-index <=> SettingsData.language;
+                        selected(i) => {
+                            SettingsData.language-selected(i);
+                        }
+                    }
+                }
                 SettingRow {
                     title: @tr("主题");
                     description: @tr("跟随系统时随 Windows 的深浅色设置自动切换。");

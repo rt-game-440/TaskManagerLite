@@ -38,6 +38,10 @@
 
 启动耗时与常驻开销的实测数据见 [ADR 0002](docs/adr/0002-software-renderer-default.md)。
 
+## 语言
+
+设置页“外观 → 语言”可选跟随系统、简体中文、English，立即生效；跟随系统时按 Windows 显示语言选择（中文系统用简体中文，其他用 English）。策略见 [ADR 0007](docs/adr/0007-language.md)。
+
 ## 下载
 
 从 [GitHub Releases](https://github.com/djp440/TaskManagerLite/releases) 下载安装包 `TaskManagerLite-<版本>-setup.exe`，同目录下的 `.sha256` 文件可用于校验。安装包默认装到 `Program Files`，需要管理员授权；安装时可以勾选“替换系统任务管理器”。卸载时会自动撤销接管。

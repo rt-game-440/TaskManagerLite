@@ -63,7 +63,7 @@ fn main() -> Result<(), slint::PlatformError> {
     if let Some(code) = tml_core::run_cli(&std::env::args().collect::<Vec<_>>()) {
         std::process::exit(code);
     }
-    i18n::init_from_env();
+    let lang_forced = i18n::init_from_env();
     // 函数以任何方式返回时停止本进程的 ETW 磁盘会话（崩溃与 panic 另有钩子兜底）。
     let _trace_guard = tml_core::TraceGuard;
     // 单实例：已有实例则通知它把窗口带到前台，本进程直接退出。须在打开日志等之前完成。
@@ -89,6 +89,10 @@ fn main() -> Result<(), slint::PlatformError> {
         let (settings, outcome) = s.load();
         (settings, Some(outcome))
     });
+    // 语言：命令行 / 环境变量优先；开发模式（截图、测量）不读设置，保持中文；否则按设置（默认跟随系统）。
+    if !lang_forced && !dev_mode {
+        i18n::set_lang(i18n::resolve(loaded.language));
+    }
     log.line(format!("设置 {outcome:?} 窗口={:?}", loaded.window));
     // 被 IFEO 重定向启动时，第一个参数是 taskmgr.exe 的路径（其余页签参数同理），本程序不使用它们。
     if tml_core::launched_as_taskmgr_debugger(&std::env::args().collect::<Vec<_>>()) {
