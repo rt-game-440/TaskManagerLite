@@ -111,6 +111,12 @@ pub struct Settings {
     pub details: Vec<Shown>,
     /// 用 ETW 统计进程磁盘速率（需要管理员权限，默认关闭，见 ADR-0004）。
     pub accurate_disk_io: bool,
+    /// 新启动 / 刚退出的进程行短暂高亮（#79，默认开）。
+    pub highlight_changes: bool,
+    /// 高亮保留的毫秒数（只在设置文件里调，限制在 500–5000）。
+    pub highlight_ms: u32,
+    /// 进程行首的类型色条（#80，默认关）。
+    pub row_marks: bool,
     /// 窗口置顶。
     pub always_on_top: bool,
     /// 用户选择用本程序接管 Ctrl+Shift+Esc（IFEO 登记，见 ADR 0003）。这只是意愿，登记是否有效以注册表为准。
@@ -146,6 +152,9 @@ impl Default for Settings {
             columns: ColumnWidths::default(),
             details: Vec::new(),
             accurate_disk_io: false,
+            highlight_changes: true,
+            highlight_ms: 1500,
+            row_marks: false,
             always_on_top: false,
             replace_taskmgr: false,
             background_sampling: false,
@@ -193,6 +202,9 @@ const KNOWN: &[&str] = &[
     "always_on_top",
     "replace_taskmgr",
     "accurate_disk_io",
+    "highlight_changes",
+    "highlight_ms",
+    "row_marks",
     "background_sampling",
     "close_to_tray",
     "theme",
@@ -364,6 +376,15 @@ impl Settings {
         if let Some(b) = o.get("accurate_disk_io").and_then(Value::as_bool) {
             s.accurate_disk_io = b;
         }
+        if let Some(b) = o.get("highlight_changes").and_then(Value::as_bool) {
+            s.highlight_changes = b;
+        }
+        if let Some(n) = o.get("highlight_ms").and_then(Value::as_u64) {
+            s.highlight_ms = n.clamp(500, 5000) as u32;
+        }
+        if let Some(b) = o.get("row_marks").and_then(Value::as_bool) {
+            s.row_marks = b;
+        }
         // 历史逐条容错：非字符串、空串与重复项被跳过，次序与文件一致（最新在前），最多保留若干条。
         if let Some(list) = o.get("run_history").and_then(Value::as_array) {
             for text in list.iter().filter_map(Value::as_str).rev() {
@@ -438,6 +459,9 @@ impl Settings {
             .collect();
         o.insert("detail_columns".into(), Value::Array(shown));
         o.insert("accurate_disk_io".into(), self.accurate_disk_io.into());
+        o.insert("highlight_changes".into(), self.highlight_changes.into());
+        o.insert("highlight_ms".into(), self.highlight_ms.into());
+        o.insert("row_marks".into(), self.row_marks.into());
         o.insert("always_on_top".into(), self.always_on_top.into());
         o.insert("replace_taskmgr".into(), self.replace_taskmgr.into());
         o.insert("background_sampling".into(), self.background_sampling.into());
@@ -556,6 +580,9 @@ mod tests {
                 Shown { column: DetailColumn::Handles, width: 76.0 },
             ],
             accurate_disk_io: true,
+            highlight_changes: false,
+            highlight_ms: 3000,
+            row_marks: true,
             always_on_top: true,
             replace_taskmgr: true,
             background_sampling: true,

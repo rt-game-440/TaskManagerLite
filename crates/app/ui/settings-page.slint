@@ -17,6 +17,12 @@ export global SettingsData {
     in-out property <int> theme;
     callback theme-selected(int);
 
+    // 进程列表：新启动 / 刚退出的行短暂高亮，行首类型色条。
+    in-out property <bool> highlight-changes;
+    callback highlight-changes-toggled(bool);
+    in-out property <bool> row-marks;
+    callback row-marks-toggled(bool);
+
     in-out property <bool> background-sampling;
     callback background-sampling-toggled(bool);
 
@@ -232,6 +238,34 @@ export component SettingsPage inherits Rectangle {
                     Switch {
                         accessible-label: @tr("窗口置顶");
                         checked <=> root.pinned;
+                    }
+                }
+            }
+
+            SettingGroup {
+                title: @tr("进程列表");
+                SettingRow {
+                    title: @tr("高亮新启动和刚退出的进程");
+                    description: @tr("新出现的进程行显示为绿色，刚退出的进程行显示为红色并保留约 1.5 秒后消失。关闭后列表行为与以前相同。");
+                    Switch {
+                        accessible-label: @tr("高亮新启动和刚退出的进程");
+                        checked <=> SettingsData.highlight-changes;
+                        toggled => {
+                            SettingsData.highlight-changes-toggled(self.checked);
+                        }
+                    }
+                }
+
+                SettingRow {
+                    title: @tr("按类型显示行首色条");
+                    description: @tr("关键进程为红色，已提权为橙色，系统账户为紫色，承载服务为蓝色。后三种依赖已读到的账户、权限与服务信息：显示对应的“详细信息”列后才有数据。");
+                    last: true;
+                    Switch {
+                        accessible-label: @tr("按类型显示行首色条");
+                        checked <=> SettingsData.row-marks;
+                        toggled => {
+                            SettingsData.row-marks-toggled(self.checked);
+                        }
                     }
                 }
             }

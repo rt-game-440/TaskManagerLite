@@ -12,6 +12,15 @@ export global Theme {
     out property <color> network: #f2a33a;
     out property <color> heat: #ffb900;
     out property <color> danger: #e5484d;
+    // 进程行变化高亮与类型色条（#79 #80）。
+    out property <brush> row-new: dark ? #3fbf7438 : #3fbf7430;
+    out property <brush> row-exited: dark ? #e5484d3a : #e5484d2e;
+    public pure function kind-color(kind: int) -> color {
+        if kind == 4 { return #e5484d; }
+        if kind == 3 { return #f2a33a; }
+        if kind == 2 { return #b37feb; }
+        return #4c9bf5;
+    }
 
     out property <brush> subtle-text: dark ? #ffffff99 : #00000099;
     out property <brush> faint-text: dark ? #ffffff5c : #0000005c;

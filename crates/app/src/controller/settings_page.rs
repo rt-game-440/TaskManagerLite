@@ -53,6 +53,8 @@ impl Controller {
             data.set_close_to_tray(s.close_to_tray);
             data.set_theme(s.theme);
             data.set_background_sampling(s.background_sampling);
+            data.set_highlight_changes(s.highlight_changes);
+            data.set_row_marks(s.row_marks);
             data.set_accurate_disk(s.accurate_disk_io);
             data.set_replace_taskmgr(s.replace_taskmgr);
             // 0（跟随系统）是界面的默认状态，无需设置。
@@ -78,6 +80,24 @@ impl Controller {
         data.on_close_to_tray_toggled(move |on| {
             if let Some(c) = c.upgrade() {
                 c.set_close_to_tray(on);
+                c.save_settings();
+            }
+        });
+        let c = Rc::downgrade(self);
+        data.on_highlight_changes_toggled(move |on| {
+            if let Some(c) = c.upgrade() {
+                c.settings.borrow_mut().highlight_changes = on;
+                c.refresh_rows();
+                c.save_settings();
+            }
+        });
+        let c = Rc::downgrade(self);
+        data.on_row_marks_toggled(move |on| {
+            if let Some(c) = c.upgrade() {
+                c.settings.borrow_mut().row_marks = on;
+                let services = on || c.state.borrow().details.iter().any(|d| d.column == tml_core::DetailColumn::Services);
+                c.sampler.send(Command::Services(services));
+                c.refresh_rows();
                 c.save_settings();
             }
         });

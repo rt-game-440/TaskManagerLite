@@ -231,7 +231,15 @@ component ProcRowView inherits Rectangle {
     callback end-tree();
 
     height: Theme.row-height;
-    background: root.selected ? Theme.selected : touch.has-hover ? Theme.hover : transparent;
+    background: root.selected ? Theme.selected : root.data.change == 1 ? Theme.row-new : root.data.change == 2 ? Theme.row-exited : touch.has-hover ? Theme.hover : transparent;
+    accessible-role: list-item;
+    accessible-label: root.data.name;
+    accessible-description: root.data.change == 1 ? @tr("新启动")
+        : root.data.change == 2 ? @tr("已退出")
+        : root.data.kind == 4 ? @tr("关键进程")
+        : root.data.kind == 3 ? @tr("已提权")
+        : root.data.kind == 2 ? @tr("系统账户")
+        : root.data.kind == 1 ? @tr("承载服务") : "";
 
     menu := ContextMenuArea {
         width: 100%;
@@ -595,6 +603,13 @@ component ProcRowView inherits Rectangle {
             text: t;
             right: Columns.extra[i].right;
         }
+    }
+
+    // 类型色条（#80）：行首 3px，不挡鼠标。
+    if root.data.kind > 0 && !root.data.header: Rectangle {
+        x: 0;
+        width: 3px;
+        background: Theme.kind-color(root.data.kind);
     }
 
     // 分组标题行：盖住整行，吃掉鼠标事件（不可选中、没有右键菜单）。

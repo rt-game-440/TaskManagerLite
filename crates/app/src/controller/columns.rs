@@ -112,7 +112,8 @@ impl Controller {
             let s = &mut *guard;
             let gpu_before = needs_gpu(&s.details);
             let eco_before = needs_eco(&s.details);
-            let services_before = needs_services(&s.details);
+            let marks = self.settings.borrow().row_marks;
+            let services_before = needs_services(&s.details) || marks;
             f(s);
             fix_sort(&mut s.opts.sort_key, &mut s.opts.descending, &s.details);
             // GPU 列只有显示时才让采样线程做进程级聚合；刚显示时会立即补采一次，尽快有值。
@@ -126,7 +127,7 @@ impl Controller {
                 self.sampler.send(Command::Eco(eco_after));
             }
             // “服务”列同理：只有显示时采样线程才枚举服务（带节流缓存）。
-            let services_after = needs_services(&s.details);
+            let services_after = needs_services(&s.details) || marks;
             if services_before != services_after {
                 self.sampler.send(Command::Services(services_after));
             }

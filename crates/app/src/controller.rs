@@ -172,6 +172,8 @@ struct State {
     /// 等待用户确认要结束的进程，按结束顺序排列。
     pending: Vec<ProcessKey>,
     first_data: bool,
+    /// 变化高亮（#79）：新进程与刚退出进程的保留状态。
+    changes: crate::highlight::ChangeTracker,
     icons: IconCache<Image>,
     /// 显示中的“详细信息”列（有序）及其宽度。
     details: Vec<Shown>,
@@ -960,7 +962,18 @@ impl Controller {
             s.cpu.record(now, sample.cpu, with_history);
 
             if fresh {
-                s.snapshot = sample.snapshot;
+                let (enabled, ms) = {
+                    let st = self.settings.borrow();
+                    (st.highlight_changes, st.highlight_ms)
+                };
+                let mut next = sample.snapshot;
+                let old = std::mem::take(&mut s.snapshot.processes);
+                let (born, gone) =
+                    s.changes.apply(&old, &mut next.processes, now, Duration::from_millis(ms as u64), enabled);
+                if born + gone > 0 {
+                    self.log.borrow_mut().line(format!("行变化 新增={born} 退出={gone}"));
+                }
+                s.snapshot = next;
                 s.app_pids = sample.app_pids;
                 s.app_windows = sample.app_windows;
             }
@@ -1253,7 +1266,7 @@ impl Controller {
         s.cpu.refresh(
             &ui,
             now,
-            s.snapshot.processes.len(),
+            s.snapshot.processes.len() - s.changes.ghost_count(),
             &cpu,
             s.resources.selected() == resources::CPU,
             window,
@@ -1261,7 +1274,7 @@ impl Controller {
         if let Some(t) = mem_text {
             ui.set_memory_view(memory::view(t));
         }
-        ui.set_process_count(s.snapshot.processes.len() as i32);
+        ui.set_process_count((s.snapshot.processes.len() - s.changes.ghost_count()) as i32);
         ui.set_cpu_summary(cpu.into());
         ui.set_memory_summary(format!("{mem_pct:.0}%").into());
     }
@@ -1311,6 +1324,7 @@ impl Controller {
             _ => build_view(&s.snapshot, &s.opts),
         };
         let procs = &s.snapshot.processes;
+        let marks = self.settings.borrow().row_marks;
         let mut selected_index = -1;
         let rows: Vec<ProcRow> = s
             .view
@@ -1346,6 +1360,17 @@ impl Controller {
                     has_children: r.has_children,
                     expanded: r.expanded,
                     critical: p.critical,
+                    change: s.changes.change_of(p.key),
+                    kind: if marks {
+                        crate::highlight::kind_of(
+                            p.critical,
+                            p.info.as_ref().and_then(|i| i.elevated),
+                            p.info.as_ref().and_then(|i| i.user.as_deref()),
+                            p.services.is_some(),
+                        )
+                    } else {
+                        crate::highlight::KIND_NONE
+                    },
                     icon: s
                         .icons
                         .icon(p.key)
