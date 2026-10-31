@@ -371,6 +371,17 @@ pub fn thread_error(e: &tml_core::threads::ThreadError) -> String {
     }
 }
 
+/// 读取句柄列表失败的原因（详情窗口里整页显示）。
+pub fn handle_error(e: &tml_core::handles::HandleError) -> String {
+    use tml_core::handles::HandleError;
+    match e {
+        HandleError::Gone => tr("进程已经退出").into(),
+        HandleError::Protected => tr("系统空闲 / System 进程不提供句柄列表").into(),
+        HandleError::AccessDenied => tr("没有权限读取该进程的句柄（受保护进程或需要管理员权限）").into(),
+        HandleError::System(e) => trf("系统返回错误：{0}", &[&e]),
+    }
+}
+
 /// 转储失败的原因（状态栏“操作失败：…”的后半句）。
 pub fn dump_error(e: &DumpError) -> String {
     match e {

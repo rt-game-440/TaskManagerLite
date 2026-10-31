@@ -13,6 +13,7 @@ mod diskio;
 mod disks;
 mod dump;
 pub mod modules;
+pub mod handles;
 pub mod threads;
 mod error;
 mod etw;

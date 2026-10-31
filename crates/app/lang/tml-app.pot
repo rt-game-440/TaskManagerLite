@@ -44,7 +44,7 @@ msgstr ""
 msgid "CPU {}"
 msgstr ""
 
-#: ui/process-details-window.slint:91
+#: ui/process-details-window.slint:141
 msgid "CPU 时间"
 msgstr ""
 
@@ -68,7 +68,7 @@ msgstr ""
 msgid "{} (PID {}) 允许运行在以下逻辑处理器上。"
 msgstr ""
 
-#: ui/process-details-window.slint:93
+#: ui/process-details-window.slint:143
 msgid "上下文切换"
 msgstr ""
 
@@ -108,7 +108,7 @@ msgstr ""
 msgid "以管理员权限创建此任务"
 msgstr ""
 
-#: ui/app.slint:288 ui/process-details-window.slint:76
+#: ui/app.slint:288 ui/process-details-window.slint:83
 msgid "以管理员身份重启"
 msgstr ""
 
@@ -116,7 +116,7 @@ msgstr ""
 msgid "任务管理器 Lite"
 msgstr ""
 
-#: ui/process-details-window.slint:89
+#: ui/process-details-window.slint:139
 msgid "优先级"
 msgstr ""
 
@@ -148,7 +148,7 @@ msgstr ""
 msgid "全选"
 msgstr ""
 
-#: ui/process-details-window.slint:128
+#: ui/process-details-window.slint:178
 msgid "公司"
 msgstr ""
 
@@ -232,11 +232,15 @@ msgstr ""
 msgid "取消置顶"
 msgstr ""
 
-#: ui/process-details-window.slint:59
+#: ui/process-details-window.slint:66
 msgid "句柄"
 msgstr ""
 
-#: ui/process-details-window.slint:123 ui/process-page.slint:14 ui/services-page.slint:101
+#: ui/process-details-window.slint:109
+msgid "句柄值"
+msgstr ""
+
+#: ui/process-details-window.slint:108 ui/process-details-window.slint:173 ui/process-page.slint:14
 msgid "名称"
 msgstr ""
 
@@ -268,7 +272,7 @@ msgstr ""
 msgid "在线搜索进程名"
 msgstr ""
 
-#: ui/process-details-window.slint:125
+#: ui/process-details-window.slint:175
 msgid "基址"
 msgstr ""
 
@@ -288,7 +292,7 @@ msgstr ""
 msgid "外观"
 msgstr ""
 
-#: ui/process-details-window.slint:126
+#: ui/process-details-window.slint:176
 msgid "大小"
 msgstr ""
 
@@ -492,7 +496,11 @@ msgstr ""
 msgid "按类型显示行首色条"
 msgstr ""
 
-#: ui/process-details-window.slint:127
+#: ui/process-details-window.slint:96
+msgid "按类型过滤，如 File、Key、Event"
+msgstr ""
+
+#: ui/process-details-window.slint:177
 msgid "描述"
 msgstr ""
 
@@ -604,7 +612,7 @@ msgstr ""
 msgid "树形"
 msgstr ""
 
-#: ui/process-details-window.slint:59
+#: ui/process-details-window.slint:66
 msgid "模块"
 msgstr ""
 
@@ -668,7 +676,7 @@ msgstr ""
 msgid "点关闭按钮时隐藏到通知区域；单击托盘图标恢复，右键托盘图标退出。"
 msgstr ""
 
-#: ui/connections-page.slint:44 ui/process-details-window.slint:90 ui/services-page.slint:104
+#: ui/connections-page.slint:44 ui/process-details-window.slint:140 ui/services-page.slint:104
 msgid "状态"
 msgstr ""
 
@@ -724,6 +732,10 @@ msgstr ""
 msgid "简体中文"
 msgstr ""
 
+#: ui/process-details-window.slint:107
+msgid "类型"
+msgstr ""
+
 #: ui/settings-page.slint:313 ui/settings-page.slint:322
 msgid "精确统计进程磁盘读写"
 msgstr ""
@@ -736,11 +748,11 @@ msgstr ""
 msgid "系统集成"
 msgstr ""
 
-#: ui/process-details-window.slint:59
+#: ui/process-details-window.slint:66
 msgid "线程"
 msgstr ""
 
-#: ui/process-details-window.slint:88
+#: ui/process-details-window.slint:138
 msgid "线程 ID"
 msgstr ""
 
@@ -816,6 +828,10 @@ msgstr ""
 msgid "设置保存在 {0}"
 msgstr ""
 
+#: ui/process-details-window.slint:110
+msgid "访问掩码"
+msgstr ""
+
 #: ui/process-page.slint:425
 msgid "详细信息…"
 msgstr ""
@@ -824,7 +840,7 @@ msgstr ""
 msgid "语言"
 msgstr ""
 
-#: ui/process-details-window.slint:92
+#: ui/process-details-window.slint:142
 msgid "起始地址"
 msgstr ""
 
@@ -840,7 +856,7 @@ msgstr ""
 msgid "跟随系统时随 Windows 的深浅色设置自动切换。"
 msgstr ""
 
-#: ui/process-details-window.slint:124
+#: ui/process-details-window.slint:174
 msgid "路径"
 msgstr ""
 
@@ -900,7 +916,7 @@ msgstr ""
 msgid "进程名"
 msgstr ""
 
-#: ui/process-details-window.slint:14
+#: ui/process-details-window.slint:17
 msgid "进程详细信息"
 msgstr ""
 

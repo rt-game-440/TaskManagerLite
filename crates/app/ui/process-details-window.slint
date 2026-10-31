@@ -1,14 +1,17 @@
-import { Button, Palette, ListView } from "std-widgets.slint";
+import { Button, Palette, ListView, LineEdit } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { HeaderCell } from "process-page.slint";
 
 // 线程的一行（#90）。
 export struct ThreadRow { tid: string, priority: string, state: string, cpu: string, start: string, switches: string }
 
+// 句柄的一行（#91）。
+export struct HandleRow { kind: string, name: string, value: string, access: string }
+
 // 已加载模块的一行（#74）。
 export struct ModuleRow { name: string, path: string, base: string, size: string, description: string, company: string }
 
-// 进程详情窗口（#74）：顶部页签：模块（#74）、线程（#90），句柄（#91）接入时在页签头与内容区各加一项。
+// 进程详情窗口（#74）：顶部页签：模块（#74）、线程（#90）、句柄（#91）。
 // 数据由 Rust 在窗口打开期间定时刷新（见 controller/process_details.rs）。
 export component ProcessDetailsWindow inherits Window {
     title: @tr("进程详细信息");
@@ -24,6 +27,10 @@ export component ProcessDetailsWindow inherits Window {
     in property <string> heading;
     in property <[ModuleRow]> modules;
     in property <[ThreadRow]> threads;
+    in property <[HandleRow]> handles;
+    // 句柄页签的类型过滤（子串，不区分大小写）。
+    in-out property <string> filter;
+    callback filter-changed();
     // 读取失败的原因；空表示正常。needs-elevation 时再显示“以管理员身份重启”。
     in property <string> error;
     in property <bool> needs-elevation;
@@ -59,9 +66,9 @@ export component ProcessDetailsWindow inherits Window {
                 for name[i] in [@tr("模块"), @tr("线程"), @tr("句柄")]: Rectangle {
                     width: 72px;
                     border-radius: 4px;
-                    background: root.tab == i ? Theme.selected : tab-touch.has-hover && i < 2 ? Theme.hover : transparent;
-                    Text { text: name; horizontal-alignment: center; vertical-alignment: center; color: i < 2 ? Palette.foreground : Theme.faint-text; }
-                    tab-touch := TouchArea { enabled: i < 2; clicked => { if (root.tab != i) { root.tab = i; root.tab-changed(); } } }
+                    background: root.tab == i ? Theme.selected : tab-touch.has-hover ? Theme.hover : transparent;
+                    Text { text: name; horizontal-alignment: center; vertical-alignment: center; color: Palette.foreground; }
+                    tab-touch := TouchArea { clicked => { if (root.tab != i) { root.tab = i; root.tab-changed(); } } }
                 }
             }
         }
@@ -74,6 +81,49 @@ export component ProcessDetailsWindow inherits Window {
                 if root.needs-elevation: HorizontalLayout {
                     alignment: center;
                     Button { text: @tr("以管理员身份重启"); clicked => { root.elevate(); } }
+                }
+            }
+        }
+        if root.error == "" && root.tab == 2: VerticalLayout {
+            vertical-stretch: 1;
+            spacing: 0px;
+            Rectangle {
+                height: 40px;
+                HorizontalLayout {
+                    padding: 6px; padding-left: 8px; padding-right: 8px; alignment: start;
+                    LineEdit {
+                        width: 240px;
+                        placeholder-text: @tr("按类型过滤，如 File、Key、Event");
+                        text <=> root.filter;
+                        edited => { root.filter-changed(); }
+                    }
+                }
+            }
+            Rectangle {
+                height: 30px;
+                background: Theme.surface-raised;
+                HorizontalLayout {
+                    padding-left: 8px; spacing: 8px;
+                    HeaderCell { text: @tr("类型"); width: 150px; align: left; resizable: false; }
+                    HeaderCell { text: @tr("名称"); min-width: 200px; horizontal-stretch: 1; align: left; resizable: false; }
+                    HeaderCell { text: @tr("句柄值"); width: 100px; align: left; resizable: false; }
+                    HeaderCell { text: @tr("访问掩码"); width: 110px; align: left; resizable: false; }
+                }
+            }
+            ListView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                for row in root.handles: Rectangle {
+                    height: Theme.row-height;
+                    background: handle-touch.has-hover ? Theme.hover : transparent;
+                    handle-touch := TouchArea { }
+                    HorizontalLayout {
+                        padding-left: 8px; spacing: 8px;
+                        Text { width: 150px; text: row.kind; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { min-width: 200px; horizontal-stretch: 1; text: row.name; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { width: 100px; text: row.value; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                        Text { width: 110px; text: row.access; overflow: elide; vertical-alignment: center; color: Palette.foreground; }
+                    }
                 }
             }
         }

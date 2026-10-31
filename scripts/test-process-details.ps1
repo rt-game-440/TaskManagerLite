@@ -6,6 +6,9 @@
 #   3. System 进程（PID 4）显示原因而不是空表（错误非空，模块 0 行）。
 # 线程页签（#90，TML_DETAILS_TAB=1 切到线程）：
 #   4. 线程行数与 Process.Threads 接近；5. 起始地址有“模块名+0x偏移”的行。
+# 句柄页签（#91，TML_DETAILS_TAB=2）：
+#   6. 句柄行数与 Process.HandleCount 接近；7. 部分句柄读到了名称；
+#   8. 对 explorer.exe（含大量命名管道等）打开也能在时限内完成，不卡住。
 # 只结束本脚本自己启动的子进程与应用实例。截图写到 -Out（默认临时目录）。
 # 用法：pwsh scripts/test-process-details.ps1 [-Exe target/release/TaskManagerLite.exe] [-Out <目录>]
 param(
@@ -64,6 +67,22 @@ try {
     $expT = (Get-Process -Id $kid.Id).Threads.Count
     Check '线程行数与 Process.Threads 接近' ([math]::Abs($tn - $expT) -le 2 -and $tn -gt 0) "界面=$tn .NET=$expT"
     Check '起始地址带模块名+偏移' ($mt.Success -and [int]$mt.Groups[2].Value -gt 0) "带偏移=$($mt.Groups[2].Value)"
+
+    $env:TML_DETAILS_TAB = '2'
+    $textH = Run-Details $kid.Id (Join-Path $Out 'details-handles.bmp')
+    $mh = [regex]::Match($textH, '详情窗口 句柄行数=(\d+) 有名称=(\d+)')
+    $hn = if ($mh.Success) { [int]$mh.Groups[1].Value } else { -1 }
+    $expH = (Get-Process -Id $kid.Id).HandleCount
+    Check '句柄行数与 HandleCount 接近' ($hn -gt 0 -and [math]::Abs($hn - $expH) -le [math]::Max(10, $expH * 0.2)) "界面=$hn .NET=$expH"
+    Check '读到了句柄名称' ($mh.Success -and [int]$mh.Groups[2].Value -gt 0) "有名称=$($mh.Groups[2].Value)"
+    $explorer = Get-Process explorer -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($explorer) {
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        $textE = Run-Details $explorer.Id (Join-Path $Out 'details-handles-explorer.bmp')
+        $me = [regex]::Match($textE, '详情窗口 句柄行数=(\d+) 有名称=(\d+)')
+        Check '大量句柄的进程不卡住' ($me.Success -and [int]$me.Groups[1].Value -gt 100 -and $sw.Elapsed.TotalSeconds -lt 20) "行数=$($me.Groups[1].Value) 名称=$($me.Groups[2].Value) 耗时=$([int]$sw.Elapsed.TotalSeconds)s"
+    }
+    Remove-Item Env:TML_DETAILS_TAB
 
     $text4 = Run-Details 4 (Join-Path $Out 'details-system.bmp')
     $m4 = [regex]::Match($text4, '详情窗口 模块行数=(\d+) 有描述=\d+ 错误=(.*)')

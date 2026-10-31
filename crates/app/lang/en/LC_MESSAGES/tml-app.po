@@ -44,7 +44,7 @@ msgstr "CPU {0}"
 msgid "CPU {}"
 msgstr "CPU {}"
 
-#: ui/process-details-window.slint:91
+#: ui/process-details-window.slint:141
 msgid "CPU 时间"
 msgstr "CPU time"
 
@@ -68,7 +68,7 @@ msgstr "{0} is a critical process. Ending it may crash the system or sign you ou
 msgid "{} (PID {}) 允许运行在以下逻辑处理器上。"
 msgstr "{} (PID {}) is allowed to run on these logical processors."
 
-#: ui/process-details-window.slint:93
+#: ui/process-details-window.slint:143
 msgid "上下文切换"
 msgstr "Context switches"
 
@@ -108,7 +108,7 @@ msgstr "Exit anyway?"
 msgid "以管理员权限创建此任务"
 msgstr "Create this task with administrator privileges"
 
-#: ui/app.slint:288 ui/process-details-window.slint:76
+#: ui/app.slint:288 ui/process-details-window.slint:83
 msgid "以管理员身份重启"
 msgstr "Restart as administrator"
 
@@ -116,7 +116,7 @@ msgstr "Restart as administrator"
 msgid "任务管理器 Lite"
 msgstr "Task Manager Lite"
 
-#: ui/process-details-window.slint:89
+#: ui/process-details-window.slint:139
 msgid "优先级"
 msgstr "Priority"
 
@@ -148,7 +148,7 @@ msgstr "Select none"
 msgid "全选"
 msgstr "Select all"
 
-#: ui/process-details-window.slint:128
+#: ui/process-details-window.slint:178
 msgid "公司"
 msgstr "Company"
 
@@ -232,11 +232,15 @@ msgstr "Cancel"
 msgid "取消置顶"
 msgstr "Unpin from top"
 
-#: ui/process-details-window.slint:59
+#: ui/process-details-window.slint:66
 msgid "句柄"
 msgstr "Handles"
 
-#: ui/process-details-window.slint:123 ui/process-page.slint:14 ui/services-page.slint:101
+#: ui/process-details-window.slint:109
+msgid "句柄值"
+msgstr "Handle"
+
+#: ui/process-details-window.slint:108 ui/process-details-window.slint:173 ui/process-page.slint:14
 msgid "名称"
 msgstr "Name"
 
@@ -268,7 +272,7 @@ msgstr "Press while in the search box."
 msgid "在线搜索进程名"
 msgstr "Search online for process name"
 
-#: ui/process-details-window.slint:125
+#: ui/process-details-window.slint:175
 msgid "基址"
 msgstr "Base address"
 
@@ -288,7 +292,7 @@ msgstr "Copy path"
 msgid "外观"
 msgstr "Appearance"
 
-#: ui/process-details-window.slint:126
+#: ui/process-details-window.slint:176
 msgid "大小"
 msgstr "Size"
 
@@ -492,7 +496,11 @@ msgstr "Start this program instead when Task Manager is opened with Ctrl+Shift+E
 msgid "按类型显示行首色条"
 msgstr "Show a colored bar by process type"
 
-#: ui/process-details-window.slint:127
+#: ui/process-details-window.slint:96
+msgid "按类型过滤，如 File、Key、Event"
+msgstr "Filter by type, e.g. File, Key, Event"
+
+#: ui/process-details-window.slint:177
 msgid "描述"
 msgstr "Description"
 
@@ -604,7 +612,7 @@ msgstr "Source"
 msgid "树形"
 msgstr "Tree"
 
-#: ui/process-details-window.slint:59
+#: ui/process-details-window.slint:66
 msgid "模块"
 msgstr "Modules"
 
@@ -668,7 +676,7 @@ msgstr "Clear filter"
 msgid "点关闭按钮时隐藏到通知区域；单击托盘图标恢复，右键托盘图标退出。"
 msgstr "Clicking the close button hides the window to the notification area. Click the tray icon to restore it, or right-click it to exit."
 
-#: ui/connections-page.slint:44 ui/process-details-window.slint:90 ui/services-page.slint:104
+#: ui/connections-page.slint:44 ui/process-details-window.slint:140 ui/services-page.slint:104
 msgid "状态"
 msgstr "Status"
 
@@ -724,6 +732,10 @@ msgstr "Refresh the current page now"
 msgid "简体中文"
 msgstr "简体中文"
 
+#: ui/process-details-window.slint:107
+msgid "类型"
+msgstr "Type"
+
 #: ui/settings-page.slint:313 ui/settings-page.slint:322
 msgid "精确统计进程磁盘读写"
 msgstr "Accurate per-process disk I/O"
@@ -736,11 +748,11 @@ msgstr "System account"
 msgid "系统集成"
 msgstr "System integration"
 
-#: ui/process-details-window.slint:59
+#: ui/process-details-window.slint:66
 msgid "线程"
 msgstr "Threads"
 
-#: ui/process-details-window.slint:88
+#: ui/process-details-window.slint:138
 msgid "线程 ID"
 msgstr "Thread ID"
 
@@ -816,6 +828,10 @@ msgstr "Set priority"
 msgid "设置保存在 {0}"
 msgstr "Settings are saved in {0}"
 
+#: ui/process-details-window.slint:110
+msgid "访问掩码"
+msgstr "Access mask"
+
 #: ui/process-page.slint:425
 msgid "详细信息…"
 msgstr "Details…"
@@ -824,7 +840,7 @@ msgstr "Details…"
 msgid "语言"
 msgstr "Language"
 
-#: ui/process-details-window.slint:92
+#: ui/process-details-window.slint:142
 msgid "起始地址"
 msgstr "Start address"
 
@@ -840,7 +856,7 @@ msgstr "When set to follow system, the Windows display language decides: Chinese
 msgid "跟随系统时随 Windows 的深浅色设置自动切换。"
 msgstr "When following the system, switches automatically with the Windows light/dark setting."
 
-#: ui/process-details-window.slint:124
+#: ui/process-details-window.slint:174
 msgid "路径"
 msgstr "Path"
 
@@ -900,7 +916,7 @@ msgstr "Process list"
 msgid "进程名"
 msgstr "Process name"
 
-#: ui/process-details-window.slint:14
+#: ui/process-details-window.slint:17
 msgid "进程详细信息"
 msgstr "Process details"
 
