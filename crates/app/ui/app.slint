@@ -82,7 +82,9 @@ component MiniIcon inherits Rectangle {
 // 4 = 把进程优先级设为“实时”（name 是进程名），5 = 对应用及其全部后代开启 / 关闭效率模式
 // （name 是应用名，descendants 是受影响的进程总数，eco-on 为 true 表示开启），
 // 6 = 挂起关键进程或多个进程（includes-critical 为 true 表示含关键进程，descendants 是受影响的进程总数），
-// 7 = 退出前提示本程序挂起的进程仍保持挂起（descendants 是这些进程的个数）。
+// 7 = 退出前提示本程序挂起的进程仍保持挂起（descendants 是这些进程的个数），
+// 8 = 创建完整转储前确认（name 是进程名，descendants 是估算体积 MB，-1 表示未知），
+// 9 = 转储创建完成（name 是文件名，主按钮打开所在文件夹）。
 component ConfirmDialog inherits Rectangle {
     in property <int> kind;
     in property <string> name;
@@ -111,14 +113,20 @@ component ConfirmDialog inherits Rectangle {
             padding: 24px;
             spacing: 12px;
             Text {
-                text: root.kind == 7 ? @tr("仍然退出？") : root.kind == 6 ? (root.includes-critical ? @tr("挂起关键进程？") : @tr("挂起多个进程？")) : root.kind == 5 ? (root.eco-on ? @tr("开启效率模式？") : @tr("关闭效率模式？")) : root.kind == 4 ? @tr("设为“实时”优先级？") : root.kind == 3 ? @tr("导出包含敏感信息的列？") : root.kind == 2 ? @tr("结束进程树？") : @tr("结束关键进程？");
+                text: root.kind == 9 ? @tr("转储已创建") : root.kind == 8 ? @tr("创建完整转储？") : root.kind == 7 ? @tr("仍然退出？") : root.kind == 6 ? (root.includes-critical ? @tr("挂起关键进程？") : @tr("挂起多个进程？")) : root.kind == 5 ? (root.eco-on ? @tr("开启效率模式？") : @tr("关闭效率模式？")) : root.kind == 4 ? @tr("设为“实时”优先级？") : root.kind == 3 ? @tr("导出包含敏感信息的列？") : root.kind == 2 ? @tr("结束进程树？") : @tr("结束关键进程？");
                 font-size: 18px;
                 font-weight: 600;
                 color: Palette.foreground;
             }
 
             Text {
-                text: root.kind == 7
+                text: root.kind == 9
+                    ? @tr("已保存为 {0}。", root.name)
+                    : root.kind == 8
+                    ? (root.descendants >= 0
+                        ? @tr("将为 {0} 创建完整转储，估算约 {1} MB，写入期间该进程内存会被读取，可能需要较长时间。", root.name, root.descendants)
+                        : @tr("将为 {0} 创建完整转储，体积接近该进程占用的内存，可能需要较长时间。", root.name))
+                    : root.kind == 7
                     ? @tr("本程序挂起的 {0} 个进程仍处于挂起状态，退出后它们不会自动恢复；再次打开本程序可以恢复它们。", root.descendants)
                     : root.kind == 6
                     ? (root.includes-critical
@@ -157,7 +165,7 @@ component ConfirmDialog inherits Rectangle {
                 }
 
                 Button {
-                    text: root.kind == 7 ? @tr("仍然退出") : root.kind == 6 ? @tr("挂起") : root.kind == 3 ? @tr("继续导出") : root.kind == 4 ? @tr("设为实时") : root.kind == 5 ? (root.eco-on ? @tr("开启") : @tr("关闭")) : @tr("结束");
+                    text: root.kind == 9 ? @tr("打开所在文件夹") : root.kind == 8 ? @tr("创建") : root.kind == 7 ? @tr("仍然退出") : root.kind == 6 ? @tr("挂起") : root.kind == 3 ? @tr("继续导出") : root.kind == 4 ? @tr("设为实时") : root.kind == 5 ? (root.eco-on ? @tr("开启") : @tr("关闭")) : @tr("结束");
                     primary: true;
                     clicked => {
                         root.accepted();
@@ -955,7 +963,7 @@ export component AppWindow inherits Window {
                         vertical-alignment: center;
                         overflow: elide;
                         font-size: 12px;
-                        color: root.status-kind == 1 || (root.status-kind >= 6 && root.status-kind <= 14) ? Theme.subtle-text : Theme.danger;
+                        color: root.status-kind == 1 || (root.status-kind >= 6 && root.status-kind <= 15) ? Theme.subtle-text : Theme.danger;
                         text: root.status-kind == 1 ? @tr("已结束 {0}", root.status-arg)
                             : root.status-kind == 2 ? @tr("没有权限结束 {0}，可以以管理员身份重启后再试", root.status-arg)
                             : root.status-kind == 3 ? @tr("{0} 已经退出", root.status-arg)
@@ -970,6 +978,7 @@ export component AppWindow inherits Window {
                             : root.status-kind == 12 ? @tr("效率模式：{0}", root.status-arg)
                             : root.status-kind == 13 ? @tr("挂起 / 恢复：{0}", root.status-arg)
                             : root.status-kind == 14 ? @tr("窗口：{0}", root.status-arg)
+                            : root.status-kind == 15 ? @tr("正在创建 {0} 的转储…", root.status-arg)
                             : "";
                     }
                 }

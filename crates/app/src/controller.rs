@@ -28,6 +28,7 @@ mod run_task;
 mod services_page;
 mod settings_page;
 mod startup_page;
+mod dump;
 mod suspend;
 mod window_ops;
 
@@ -69,6 +70,10 @@ const CONFIRM_ECO: i32 = 5;
 const CONFIRM_SUSPEND: i32 = 6;
 /// 退出前提示：本程序挂起的进程退出后仍保持挂起（`descendants` 为这些进程的个数）。
 const CONFIRM_EXIT_SUSPENDED: i32 = 7;
+/// 创建完整转储前的确认（`name` 为进程名，`descendants` 为估算体积 MB，-1 表示未知，目标进程在 `dump.pending`）。
+const CONFIRM_DUMP: i32 = 8;
+/// 转储创建完成的提示（`name` 为文件名），可打开所在文件夹。
+const CONFIRM_DUMP_DONE: i32 = 9;
 /// 隐藏启动时托盘图标创建失败的重试次数（每秒一次）。
 const TRAY_RETRIES: u32 = 30;
 
@@ -89,6 +94,7 @@ pub struct Controller {
     eco: process_control::EcoState,
     /// 本程序挂起的进程与退出前提示（#67）。
     suspend: suspend::SuspendState,
+    dump: dump::DumpState,
     ui: slint::Weak<AppWindow>,
     rows: Rc<VecModel<ProcRow>>,
     resources: Rc<VecModel<Resource>>,
@@ -321,6 +327,7 @@ impl Controller {
             affinity_target: RefCell::new(None),
             eco: Default::default(),
             suspend: Default::default(),
+            dump: Default::default(),
             ui: ui.as_weak(),
             rows,
             resources,
@@ -373,6 +380,7 @@ impl Controller {
         c.bind_run_task(ui);
         c.bind_process_control(ui);
         c.bind_suspend(ui);
+        c.bind_dump(ui);
         c.bind_window_ops(ui);
         c.bind_export(ui);
         c.bind_graph_hover(ui);
@@ -1487,6 +1495,14 @@ impl Controller {
         }
         if kind == CONFIRM_EXIT_SUSPENDED {
             self.confirm_exit_suspended();
+            return;
+        }
+        if kind == CONFIRM_DUMP {
+            self.confirm_dump();
+            return;
+        }
+        if kind == CONFIRM_DUMP_DONE {
+            self.confirm_dump_done();
             return;
         }
         let keys = std::mem::take(&mut self.state.borrow_mut().pending);

@@ -18,6 +18,10 @@ use crate::system::filetime;
 pub(crate) struct OwnedHandle(HANDLE);
 
 impl OwnedHandle {
+    pub(crate) fn from_raw(h: HANDLE) -> Self {
+        Self(h)
+    }
+
     pub(crate) fn raw(&self) -> HANDLE {
         self.0
     }

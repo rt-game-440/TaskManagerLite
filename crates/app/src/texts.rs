@@ -14,7 +14,7 @@ use tml_core::connections::{ConnectionError, TcpState};
 use tml_core::services::{Action, ServiceError, ServiceState, StartType, StartTypeBlock};
 use tml_core::startup::{SourceError, StartupError, StartupSource};
 use tml_core::{
-    AutostartError, DebuggerValue, ElevationError, IfeoError, MediaType, PriorityClass, ProcessControlError, RunError,
+    AutostartError, DumpError, DumpKind, DebuggerValue, ElevationError, IfeoError, MediaType, PriorityClass, ProcessControlError, RunError,
     ShellError, SystemError, UnsafeReason, WindowError, WindowOp,
 };
 
@@ -304,6 +304,50 @@ pub fn process_control_error(e: &ProcessControlError) -> String {
         ProcessControlError::Unsupported => "当前 Windows 版本不支持效率模式（需要 Windows 10 1709 及以上）".into(),
         ProcessControlError::System(e) => format!("系统返回错误：{e}"),
     }
+}
+
+/// 右键菜单“创建转储文件”项的标题；置灰时括号里写原因，`None` 表示可用。
+pub fn dump_menu_title(block: Option<&DumpError>) -> &'static str {
+    match block {
+        None => "创建转储文件",
+        Some(DumpError::Protected) => "创建转储文件（系统进程或本程序，不可转储）",
+        Some(DumpError::Gone) => "创建转储文件（进程已退出）",
+        Some(DumpError::Bitness) => "创建转储文件（目标是 32 位进程，本程序是 64 位）",
+        Some(_) => "创建转储文件（没有权限）",
+    }
+}
+
+/// 转储失败的原因（状态栏“操作失败：…”的后半句）。
+pub fn dump_error(e: &DumpError) -> String {
+    match e {
+        DumpError::Gone => "进程已经退出".into(),
+        DumpError::Protected => "系统空闲 / System 进程或本程序自身，不允许创建转储".into(),
+        DumpError::AccessDenied => "没有权限读取该进程（受保护进程或需要管理员权限），可以以管理员身份重启后再试".into(),
+        DumpError::Bitness => "目标是 32 位进程而本程序是 64 位，系统无法生成转储".into(),
+        DumpError::CreateFile(e) => format!("无法创建转储文件：{e}"),
+        DumpError::Write(e) => format!("写入转储失败（可能磁盘空间不足），已删除不完整的文件：{e}"),
+        DumpError::System(e) => format!("系统返回错误：{e}"),
+    }
+}
+
+pub fn dump_action() -> &'static str {
+    "创建转储文件"
+}
+
+pub fn dump_kind_name(kind: DumpKind) -> &'static str {
+    match kind {
+        DumpKind::Mini => "最小",
+        DumpKind::Full => "完整",
+    }
+}
+
+pub fn dump_save_title() -> &'static str {
+    "保存转储文件"
+}
+
+/// 转储保存对话框的文件类型：(显示名, 通配符)。
+pub fn dump_filters() -> [(&'static str, &'static str); 2] {
+    [("转储文件 (*.dmp)", "*.dmp"), ("所有文件", "*.*")]
 }
 
 /// 状态栏：效率模式已开启（进程优先级随之降为低）。

@@ -64,6 +64,9 @@ export global ProcessMenu {
     in-out property <bool> can-resume;
     in-out property <string> suspend-title;
     in-out property <string> resume-title;
+    // “创建转储文件”（#75）：受保护进程、位数不匹配等置灰（标题里带原因）。
+    in-out property <bool> can-dump;
+    in-out property <string> dump-title;
     // “转到服务”（#85）：所选进程承载服务时可用，否则置灰（菜单弹出前由 Rust 枚举判断）。
     in-out property <bool> can-goto-service;
     // 应用窗口操作（#70）：只有分组视图的应用行显示；已处于目标状态、窗口已关闭、目标需要提权时置灰（标题里带原因）。
@@ -92,6 +95,8 @@ export global ProcessMenu {
     callback set-affinity();
     // 切换所选进程（应用行为其全部后代）的效率模式；多于一个进程时由 Rust 先弹确认框。
     callback toggle-eco();
+    // 创建转储文件：false = 最小，true = 完整；保存位置与完整转储的体积确认由 Rust 处理。
+    callback create-dump(bool);
     callback suspend();
     callback resume();
     // 切到服务页，按所选进程的 PID 过滤并选中它承载的服务。
@@ -382,6 +387,27 @@ component ProcRowView inherits Rectangle {
                 enabled: ProcessMenu.can-resume;
                 activated => {
                     ProcessMenu.resume();
+                }
+            }
+
+            Menu {
+                title: ProcessMenu.dump-title;
+                enabled: ProcessMenu.can-dump;
+
+                MenuItem {
+                    title: @tr("最小转储…");
+                    enabled: ProcessMenu.can-dump;
+                    activated => {
+                        ProcessMenu.create-dump(false);
+                    }
+                }
+
+                MenuItem {
+                    title: @tr("完整转储…");
+                    enabled: ProcessMenu.can-dump;
+                    activated => {
+                        ProcessMenu.create-dump(true);
+                    }
                 }
             }
 

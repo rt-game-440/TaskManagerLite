@@ -90,6 +90,7 @@ impl Controller {
         menu.set_can_goto_service(goto_service_enabled(hosted));
         self.update_control_menu(&ui);
         self.update_window_menu(&ui);
+        self.update_dump_menu(&ui);
     }
 
     pub(super) fn report(&self, kind: i32, arg: String) {

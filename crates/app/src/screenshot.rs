@@ -896,7 +896,16 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
                         ui.invoke_confirm_accepted();
                     }
                 }
-"window-activate" | "window-maximize" | "window-minimize" | "window-restore" => {
+"dump-mini" | "dump-full" => {
+                    // 目标路径取自环境变量 `TML_DUMP_PATH`（不弹保存对话框）；完整转储自动点确认框。
+                    menu.invoke_opening();
+                    eprintln!("{action} 菜单项 enabled={} 标题={}", menu.get_can_dump(), menu.get_dump_title());
+                    menu.invoke_create_dump(action == "dump-full");
+                    if ui.get_confirm_kind() != 0 {
+                        ui.invoke_confirm_accepted();
+                    }
+                }
+                "window-activate" | "window-maximize" | "window-minimize" | "window-restore" => {
                     // 与右键菜单一致：先按弹出前的逻辑设置各项状态（应用行需要 `:group`），再触发动作；
                     // 置灰时钩子仍触发一次，核对被拒绝的路径。
                     menu.invoke_opening();
