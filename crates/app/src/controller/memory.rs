@@ -2,6 +2,7 @@
 //!
 //! `describe` 是纯函数，可直接单测；`view` 只做到界面结构体的转换。
 
+use crate::i18n::tr;
 use tml_core::{MemoryHardware, MemoryStatus};
 
 use crate::{MemoryView, StatItem};
@@ -33,26 +34,26 @@ pub struct MemoryText {
 pub fn describe(s: &MemoryStatus, hw: Option<&MemoryHardware>) -> MemoryText {
     let pair = |l: &str, v: String| (l.to_string(), v);
     let stats = vec![
-        pair("使用中", size(s.in_use())),
-        pair("可用", size(s.available)),
-        pair("已提交", format!("{:.1}/{:.1} GB", s.committed as f64 / GIB, s.commit_limit as f64 / GIB)),
-        pair("已缓存", size(s.cached())),
-        pair("已压缩", size(s.compressed)),
-        pair("分页缓冲池", size(s.paged_pool)),
-        pair("非分页缓冲池", size(s.nonpaged_pool)),
+        pair(tr("使用中"), size(s.in_use())),
+        pair(tr("可用"), size(s.available)),
+        pair(tr("已提交"), format!("{:.1}/{:.1} GB", s.committed as f64 / GIB, s.commit_limit as f64 / GIB)),
+        pair(tr("已缓存"), size(s.cached())),
+        pair(tr("已压缩"), size(s.compressed)),
+        pair(tr("分页缓冲池"), size(s.paged_pool)),
+        pair(tr("非分页缓冲池"), size(s.nonpaged_pool)),
     ];
 
     let installed = hw.map(|h| h.installed).filter(|&n| n > 0);
     let unknown = || UNKNOWN.to_string();
     let info = vec![
-        pair("总容量", size(installed.unwrap_or(s.total))),
-        pair("速度", hw.and_then(|h| h.speed_mts).map_or_else(unknown, |v| format!("{v} MT/s"))),
+        pair(tr("总容量"), size(installed.unwrap_or(s.total))),
+        pair(tr("速度"), hw.and_then(|h| h.speed_mts).map_or_else(unknown, |v| format!("{v} MT/s"))),
         pair(
-            "已使用的插槽",
+            tr("已使用的插槽"),
             hw.filter(|h| h.slots_total > 0).map_or_else(unknown, |h| format!("{}/{}", h.slots_used, h.slots_total)),
         ),
-        pair("外形规格", hw.and_then(|h| h.form_factor).map_or_else(unknown, str::to_string)),
-        pair("为硬件保留的内存", installed.map_or_else(unknown, |n| size(n.saturating_sub(s.total)))),
+        pair(tr("外形规格"), hw.and_then(|h| h.form_factor).map_or_else(unknown, str::to_string)),
+        pair(tr("为硬件保留的内存"), installed.map_or_else(unknown, |n| size(n.saturating_sub(s.total)))),
     ];
 
     let header = match hw {
@@ -64,10 +65,10 @@ pub fn describe(s: &MemoryStatus, hw: Option<&MemoryHardware>) -> MemoryText {
     };
 
     let composition = vec![
-        pair("使用中", size(s.in_use())),
-        pair("已修改", size(s.modified)),
-        pair("备用", size(s.standby)),
-        pair("空闲", size(s.free)),
+        pair(tr("使用中"), size(s.in_use())),
+        pair(tr("已修改"), size(s.modified)),
+        pair(tr("备用"), size(s.standby)),
+        pair(tr("空闲"), size(s.free)),
     ];
     let frac = |n: u64| if s.total > 0 { (n as f64 / s.total as f64).clamp(0.0, 1.0) as f32 } else { 0.0 };
     let mut fractions = [frac(s.in_use()), frac(s.modified), frac(s.standby)];

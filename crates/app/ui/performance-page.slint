@@ -388,7 +388,7 @@ export component PerformancePage inherits Rectangle {
                     spacing: 4px;
                     for line[i] in root.data.gpu-lines: VerticalLayout {
                         Text {
-                            text: (i == 0 ? "专用显存" : "共享显存") + " · " + root.data.gpu-scales[i];
+                            text: (i == 0 ? @tr("专用显存") : @tr("共享显存")) + " · " + root.data.gpu-scales[i];
                             color: Theme.subtle-text;
                             font-size: 12px;
                         }

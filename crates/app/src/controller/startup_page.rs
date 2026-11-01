@@ -1,3 +1,4 @@
+use crate::i18n::{tr, trf};
 use super::*;
 use crate::texts;
 use crate::{StartupData, StartupRow};
@@ -71,8 +72,8 @@ impl Controller {
                 let result = if toggle {
                     let e = entry.as_ref().unwrap();
                     tml_core::startup::set(e, !e.enabled)
-                        .map(|()| "状态已更新".to_owned())
-                        .unwrap_or_else(|e| format!("无法修改启动项：{}", texts::startup_error(&e)))
+                        .map(|()| tr("状态已更新").to_owned())
+                        .unwrap_or_else(|e| trf("无法修改启动项：{0}", &[&(texts::startup_error(&e))]))
                 } else {
                     String::new()
                 };
@@ -82,7 +83,7 @@ impl Controller {
                     .chain(errors.iter().map(texts::startup_source_error))
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
-                    .join("；");
+                    .join(tr("；"));
                 let _ = slint::invoke_from_event_loop(move || {
                     crate::CONTROLLER.with(|cell| {
                         let Some(c) = cell.borrow().clone() else {
@@ -97,7 +98,7 @@ impl Controller {
             });
         if let Err(e) = work {
             data.set_busy(false);
-            data.set_note(format!("无法创建后台线程：{e}").into());
+            data.set_note(trf("无法创建后台线程：{0}", &[&e]).into());
         }
     }
 }

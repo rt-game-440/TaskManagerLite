@@ -1,5 +1,6 @@
 //! 界面线程上的状态与交互逻辑。
 
+use crate::i18n::{tr, trf};
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -23,11 +24,13 @@ mod graph_hover;
 mod memory;
 mod mini;
 mod process_control;
+mod process_details;
 mod process_menu;
 mod run_task;
 mod services_page;
 mod settings_page;
 mod startup_page;
+mod dump;
 mod suspend;
 mod window_ops;
 
@@ -69,6 +72,10 @@ const CONFIRM_ECO: i32 = 5;
 const CONFIRM_SUSPEND: i32 = 6;
 /// 退出前提示：本程序挂起的进程退出后仍保持挂起（`descendants` 为这些进程的个数）。
 const CONFIRM_EXIT_SUSPENDED: i32 = 7;
+/// 创建完整转储前的确认（`name` 为进程名，`descendants` 为估算体积 MB，-1 表示未知，目标进程在 `dump.pending`）。
+const CONFIRM_DUMP: i32 = 8;
+/// 转储创建完成的提示（`name` 为文件名），可打开所在文件夹。
+const CONFIRM_DUMP_DONE: i32 = 9;
 /// 隐藏启动时托盘图标创建失败的重试次数（每秒一次）。
 const TRAY_RETRIES: u32 = 30;
 
@@ -89,6 +96,8 @@ pub struct Controller {
     eco: process_control::EcoState,
     /// 本程序挂起的进程与退出前提示（#67）。
     suspend: suspend::SuspendState,
+    dump: dump::DumpState,
+    details: process_details::DetailsState,
     ui: slint::Weak<AppWindow>,
     rows: Rc<VecModel<ProcRow>>,
     resources: Rc<VecModel<Resource>>,
@@ -96,6 +105,7 @@ pub struct Controller {
     icon_worker: IconWorker,
     /// 静态信息（用户名、路径等）的后台读取线程，第一次显示这类列时才创建。
     info_worker: OnceCell<InfoWorker>,
+    sig_worker: OnceCell<crate::details::SigWorker>,
     /// 显示中的详细信息列（表头）与列选择菜单的选项；原地更新，见 `columns::assign`。
     detail_headers: Rc<VecModel<DetailHeader>>,
     detail_choices: Rc<VecModel<DetailChoice>>,
@@ -165,6 +175,8 @@ struct State {
     /// 等待用户确认要结束的进程，按结束顺序排列。
     pending: Vec<ProcessKey>,
     first_data: bool,
+    /// 变化高亮（#79）：新进程与刚退出进程的保留状态。
+    changes: crate::highlight::ChangeTracker,
     icons: IconCache<Image>,
     /// 显示中的“详细信息”列（有序）及其宽度。
     details: Vec<Shown>,
@@ -227,10 +239,10 @@ fn group_title(h: GroupHeader) -> String {
     format!("{} ({})", crate::texts::group_name(h.group), h.count)
 }
 
-/// 进程行显示的 (CPU, 内存, 磁盘, GPU)：分组视图的应用行是自身加全部后代的合计，其余行是各自的值。
-fn row_values(p: &Process, r: &ViewRow) -> (f32, u64, f64, Option<f32>) {
-    r.totals.map_or((p.cpu_usage, p.private_working_set, p.disk_rate, p.gpu_usage), |t| {
-        (t.cpu_usage, t.private_working_set, t.disk_rate, t.gpu_usage)
+/// 进程行显示的 (CPU, 内存, 磁盘, GPU, 网络)：分组视图的应用行是自身加全部后代的合计，其余行是各自的值。
+fn row_values(p: &Process, r: &ViewRow) -> (f32, u64, f64, Option<f32>, Option<f64>) {
+    r.totals.map_or((p.cpu_usage, p.private_working_set, p.disk_rate, p.gpu_usage, p.net_rate), |t| {
+        (t.cpu_usage, t.private_working_set, t.disk_rate, t.gpu_usage, t.net_rate)
     })
 }
 
@@ -321,6 +333,8 @@ impl Controller {
             affinity_target: RefCell::new(None),
             eco: Default::default(),
             suspend: Default::default(),
+            dump: Default::default(),
+            details: Default::default(),
             ui: ui.as_weak(),
             rows,
             resources,
@@ -335,6 +349,7 @@ impl Controller {
                 });
             }),
             info_worker: OnceCell::new(),
+            sig_worker: OnceCell::new(),
             detail_headers: Rc::new(VecModel::default()),
             detail_choices: Rc::new(VecModel::default()),
             icon_px: Cell::new(0),
@@ -373,6 +388,8 @@ impl Controller {
         c.bind_run_task(ui);
         c.bind_process_control(ui);
         c.bind_suspend(ui);
+        c.bind_dump(ui);
+        c.bind_process_details(ui);
         c.bind_window_ops(ui);
         c.bind_export(ui);
         c.bind_graph_hover(ui);
@@ -667,7 +684,7 @@ impl Controller {
         }
         drop(log);
         if self.state.borrow().first_data {
-            self.log_history("保存设置");
+            self.log_history(tr("保存设置"));
         }
     }
 
@@ -689,7 +706,7 @@ impl Controller {
         drop(s);
         self.sampler.send(Command::Visible(visible));
         if restored {
-            self.force_repaint("恢复可见");
+            self.force_repaint(tr("恢复可见"));
         }
     }
 
@@ -800,9 +817,9 @@ impl Controller {
         });
         self.tray_failed.set(tray.is_none());
         self.log.borrow_mut().line(if tray.is_some() {
-            "托盘图标已创建"
+            tr("托盘图标已创建")
         } else {
-            "托盘图标创建失败"
+            tr("托盘图标创建失败")
         });
         let failed = tray.is_none();
         *self.tray.borrow_mut() = tray;
@@ -852,6 +869,19 @@ impl Controller {
                 s.system.memory_total,
             )
         })
+    }
+
+    /// 语言切换后重算带 Rust 文案的部分：托盘提示与进程列表。
+    fn refresh_after_language(&self) {
+        {
+            let mut s = self.state.borrow_mut();
+            s.resources.invalidate_texts();
+        }
+        {
+            let s = self.state.borrow();
+            self.update_tray_tip(&s);
+        }
+        self.refresh_rows();
     }
 
     fn update_tray_tip(&self, s: &State) {
@@ -950,7 +980,18 @@ impl Controller {
             s.cpu.record(now, sample.cpu, with_history);
 
             if fresh {
-                s.snapshot = sample.snapshot;
+                let (enabled, ms) = {
+                    let st = self.settings.borrow();
+                    (st.highlight_changes, st.highlight_ms)
+                };
+                let mut next = sample.snapshot;
+                let old = std::mem::take(&mut s.snapshot.processes);
+                let (born, gone) =
+                    s.changes.apply(&old, &mut next.processes, now, Duration::from_millis(ms as u64), enabled);
+                if born + gone > 0 {
+                    self.log.borrow_mut().line(format!("行变化 新增={born} 退出={gone}"));
+                }
+                s.snapshot = next;
                 s.app_pids = sample.app_pids;
                 s.app_windows = sample.app_windows;
             }
@@ -1162,7 +1203,7 @@ impl Controller {
                     (_, ResourceKind::Gpu) => gpu.map(|g| g.name.clone()).unwrap_or_default(),
                     _ => network.map(|n| format!("{} · 链路 {:.0} Mbps{}\n{}\n{}", crate::texts::connection_kind(n.connection), n.link_speed as f64 / 1e6,
                         if n.ssid.is_empty() { String::new() } else { format!(" · SSID {}", n.ssid) },
-                        if n.addresses.is_empty() { "地址不可用" } else { &n.addresses }, s.resources.network_stats(&n.id, now, window))).unwrap_or_default(),
+                        if n.addresses.is_empty() { tr("地址不可用") } else { &n.addresses }, s.resources.network_stats(&n.id, now, window))).unwrap_or_default(),
                 };
 
                 Resource {
@@ -1179,19 +1220,11 @@ impl Controller {
                                 .iter()
                                 .map(|v| v.capacity.saturating_sub(v.free))
                                 .sum::<u64>();
-                            format!(
-                                "{} · {} · 容量 {} · {}\n已挂载卷合计：已用 {} · 可用 {}",
-                                d.model,
-                                crate::texts::media_type(d.media_type),
-                                format::gigabytes(d.capacity),
-                                if d.system {
-                                    "系统盘"
+                            trf("{0} · {1} · 容量 {2} · {3}\n已挂载卷合计：已用 {4} · 可用 {5}", &[&d.model, &(crate::texts::media_type(d.media_type)), &(format::gigabytes(d.capacity)), &(if d.system {
+                                    tr("系统盘")
                                 } else {
-                                    "非系统盘"
-                                },
-                                format::gigabytes(used),
-                                format::gigabytes(free)
-                            )
+                                    tr("非系统盘")
+                                }), &(format::gigabytes(used)), &(format::gigabytes(free))])
                         })
                         .unwrap_or_default()
                         .into(),
@@ -1200,14 +1233,7 @@ impl Controller {
                             d.volumes
                                 .iter()
                                 .map(|v| {
-                                    SharedString::from(format!(
-                                        "{}  {}    容量 {}    已用 {}    可用 {}",
-                                        v.mount,
-                                        v.filesystem,
-                                        format::gigabytes(v.capacity),
-                                        format::gigabytes(v.capacity.saturating_sub(v.free)),
-                                        format::gigabytes(v.free)
-                                    ))
+                                    SharedString::from(trf("{0}  {1}    容量 {2}    已用 {3}    可用 {4}", &[&v.mount, &v.filesystem, &(format::gigabytes(v.capacity)), &(format::gigabytes(v.capacity.saturating_sub(v.free))), &(format::gigabytes(v.free))]))
                                 })
                                 .collect::<Vec<_>>()
                         })
@@ -1243,7 +1269,7 @@ impl Controller {
         s.cpu.refresh(
             &ui,
             now,
-            s.snapshot.processes.len(),
+            s.snapshot.processes.len() - s.changes.ghost_count(),
             &cpu,
             s.resources.selected() == resources::CPU,
             window,
@@ -1251,7 +1277,7 @@ impl Controller {
         if let Some(t) = mem_text {
             ui.set_memory_view(memory::view(t));
         }
-        ui.set_process_count(s.snapshot.processes.len() as i32);
+        ui.set_process_count((s.snapshot.processes.len() - s.changes.ghost_count()) as i32);
         ui.set_cpu_summary(cpu.into());
         ui.set_memory_summary(format!("{mem_pct:.0}%").into());
     }
@@ -1301,6 +1327,7 @@ impl Controller {
             _ => build_view(&s.snapshot, &s.opts),
         };
         let procs = &s.snapshot.processes;
+        let marks = self.settings.borrow().row_marks;
         let mut selected_index = -1;
         let rows: Vec<ProcRow> = s
             .view
@@ -1321,7 +1348,7 @@ impl Controller {
                     selected_index = i as i32;
                 }
                 // 分组视图的应用行显示“自身 + 全部后代”的合计，其余行显示各自的值。
-                let (cpu, memory, disk, gpu) = row_values(p, r);
+                let (cpu, memory, disk, gpu, net) = row_values(p, r);
                 let [cpu_text, memory_text, disk_text] = basic_texts(cpu, memory, disk);
                 ProcRow {
                     name: p.name.as_str().into(),
@@ -1336,13 +1363,24 @@ impl Controller {
                     has_children: r.has_children,
                     expanded: r.expanded,
                     critical: p.critical,
+                    change: s.changes.change_of(p.key),
+                    kind: if marks {
+                        crate::highlight::kind_of(
+                            p.critical,
+                            p.info.as_ref().and_then(|i| i.elevated),
+                            p.info.as_ref().and_then(|i| i.user.as_deref()),
+                            p.services.is_some(),
+                        )
+                    } else {
+                        crate::highlight::KIND_NONE
+                    },
                     icon: s
                         .icons
                         .icon(p.key)
                         .cloned()
                         .unwrap_or_else(|| self.blank_icon.clone()),
                     header: false,
-                    extra: Self::detail_cells(s, p, gpu),
+                    extra: Self::detail_cells(s, p, gpu, net),
                 }
             })
             .collect();
@@ -1489,6 +1527,14 @@ impl Controller {
             self.confirm_exit_suspended();
             return;
         }
+        if kind == CONFIRM_DUMP {
+            self.confirm_dump();
+            return;
+        }
+        if kind == CONFIRM_DUMP_DONE {
+            self.confirm_dump_done();
+            return;
+        }
         let keys = std::mem::take(&mut self.state.borrow_mut().pending);
         let name = ui.get_confirm_name().to_string();
         self.end(keys, &name);
@@ -1524,7 +1570,7 @@ impl Controller {
         self.sampler.send(Command::Wake);
     }
 
-    fn elevate(&self) {
+    pub(super) fn elevate(&self) {
         // 新进程会立刻读取设置，先保存。
         self.save_settings();
         if tml_core::relaunch_elevated() {
@@ -1581,6 +1627,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,

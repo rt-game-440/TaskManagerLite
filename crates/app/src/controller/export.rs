@@ -7,6 +7,7 @@
 //! - 保存对话框和写文件都在后台线程里完成，界面线程只负责显示结果；取消保存不报错。
 //! - 日志只记录行数、列数、结果与错误码，不记录导出的内容和文件路径。
 
+use crate::i18n::tr;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -117,7 +118,7 @@ pub fn process_table(
             continue;
         }
         let p = &snapshot.processes[r.index];
-        let (cpu, memory, disk, gpu) = row_values(p, r);
+        let (cpu, memory, disk, gpu, net) = row_values(p, r);
         let mut cells = Vec::with_capacity(header.len());
         if mode == ViewMode::Group {
             cells.push(group.map_or("", texts::group_name).to_owned());
@@ -128,7 +129,7 @@ pub fn process_table(
         cells.push(p.name.clone());
         cells.push(p.key.pid.to_string());
         cells.extend(basic_texts(cpu, memory, disk));
-        cells.extend(details.iter().map(|d| details::cell(p, d.column, gpu)));
+        cells.extend(details.iter().map(|d| details::cell(p, d.column, gpu, net)));
         rows.push((p.key, cells));
     }
     ProcessTable { header, rows }
@@ -323,7 +324,7 @@ impl Controller {
                     self.report(STATUS_ROW_COPIED, name);
                 } else {
                     self.log.borrow_mut().line("复制所选行 失败 剪贴板被占用");
-                    self.report(STATUS_ERROR, failure(action, "剪贴板被占用"));
+                    self.report(STATUS_ERROR, failure(action, tr("剪贴板被占用")));
                 }
             }
         }
@@ -451,7 +452,7 @@ impl Controller {
             }
             Outcome::Cancelled => self.log.borrow_mut().line(format!("导出 {what} 已取消")),
             Outcome::Failed(path, e) => {
-                let code = e.win32_code().map_or_else(|| "无".to_owned(), |c| c.to_string());
+                let code = e.win32_code().map_or_else(|| tr("无").to_owned(), |c| c.to_string());
                 self.log.borrow_mut().line(format!("导出 {what} 失败 错误码={code}"));
                 let reason = texts::export_write_error(&file_name(&path), &e);
                 self.report(STATUS_ERROR, failure(texts::export_action(), &reason));
@@ -515,6 +516,7 @@ mod tests {
             private_working_set: u64::from(pid) * 1024 * 1024,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
@@ -589,7 +591,7 @@ mod tests {
         let t = process_table(&snap, &view, ViewMode::Flat, &d, &titles());
         assert_eq!(t.header[5], "服务");
         let by_pid = |pid: &str| t.rows.iter().find(|(_, c)| c[1] == pid).unwrap().1[5].clone();
-        assert_eq!(by_pid("10"), details::cell(&snap.processes[1], DetailColumn::Services, None));
+        assert_eq!(by_pid("10"), details::cell(&snap.processes[1], DetailColumn::Services, None, None));
         assert_eq!(by_pid("10"), "Svc1、Svc2、Svc3、Svc4、Svc5、Svc6…（共 8 个）");
         assert_eq!(by_pid("11"), "Dhcp、Dnscache");
         assert_eq!(by_pid("1"), "");

@@ -223,7 +223,7 @@ pub struct ControlState {
 }
 
 /// 打开进程并核对创建时间，防止改到复用了同一 PID 的新进程。
-fn open_checked(
+pub(crate) fn open_checked(
     key: ProcessKey,
     access: PROCESS_ACCESS_RIGHTS,
 ) -> Result<OwnedHandle, ProcessControlError> {

@@ -27,6 +27,7 @@ use windows::Win32::System::Threading::{
 use windows::Win32::System::Time::{FileTimeToSystemTime, SystemTimeToTzSpecificLocalTime};
 use windows::core::{PCWSTR, PWSTR};
 
+use crate::signature::{SigSlot, Signature};
 use crate::procinfo::{ProcessHandle, query_command_line, query_image_path};
 use crate::snapshot::{Process, ProcessKey};
 
@@ -56,10 +57,14 @@ pub enum DetailColumn {
     EcoMode,
     /// 进程承载的服务（#85）；只有显示这一列时采样器才（节流地）枚举服务。
     Services,
+    /// 进程的网络收 + 发速率（#65）；来自 ETW，需提权并开启“更准确的磁盘速率”，否则显示“—”。
+    Network,
+    /// 可执行文件的数字签名状态（#76）；后台离线校验，进入页面前显示“…”。
+    Signature,
 }
 
 impl DetailColumn {
-    pub const ALL: [Self; 20] = [
+    pub const ALL: [Self; 22] = [
         Self::Status,
         Self::User,
         Self::Session,
@@ -80,6 +85,8 @@ impl DetailColumn {
         Self::Gpu,
         Self::EcoMode,
         Self::Services,
+        Self::Network,
+        Self::Signature,
     ];
 
     /// 设置文件里使用的名字。
@@ -105,6 +112,8 @@ impl DetailColumn {
             Self::Gpu => "gpu",
             Self::EcoMode => "eco_mode",
             Self::Services => "services",
+            Self::Network => "network",
+            Self::Signature => "signature",
         }
     }
 
@@ -116,7 +125,7 @@ impl DetailColumn {
     pub fn needs_static(self) -> bool {
         matches!(
             self,
-            Self::User | Self::Path | Self::CommandLine | Self::Arch | Self::Elevated | Self::Description | Self::Company
+            Self::User | Self::Path | Self::CommandLine | Self::Arch | Self::Elevated | Self::Description | Self::Company | Self::Signature
         )
     }
 }
@@ -180,6 +189,8 @@ pub struct StaticInfo {
     pub elevated: Option<bool>,
     pub description: Option<String>,
     pub company: Option<String>,
+    /// 签名校验结果的共享槽位（同一路径共用）；路径读不到时为 `None`。
+    pub signature: Option<SigSlot>,
 }
 
 /// 版本信息缓存的路径数上限。
@@ -190,6 +201,7 @@ const VERSION_CACHE_CAP: usize = 2048;
 pub struct StaticReader {
     users: HashMap<Vec<u8>, Option<String>>,
     versions: HashMap<PathBuf, (Option<String>, Option<String>)>,
+    sigs: HashMap<PathBuf, SigSlot>,
 }
 
 impl StaticReader {
@@ -209,11 +221,13 @@ impl StaticReader {
                 // 按路径缓存，数量封顶：长期运行时不同路径的 exe 不会让缓存无限增长，清空后按需重读即可。
                 if self.versions.len() >= VERSION_CACHE_CAP && !self.versions.contains_key(p) {
                     self.versions.clear();
+                self.sigs.clear();
                 }
                 self.versions.entry(p.clone()).or_insert_with(|| version_strings(p)).clone()
             }
             None => (None, None),
         };
+        let signature = path.as_ref().map(|p| self.sigs.entry(p.clone()).or_default().clone());
         let token = Token::open(&h);
         let user = token.as_ref().and_then(|t| {
             let sid = t.user_sid()?;
@@ -226,6 +240,7 @@ impl StaticReader {
             elevated: token.as_ref().and_then(Token::elevated),
             description,
             company,
+            signature,
             path,
         })
     }
@@ -434,6 +449,19 @@ pub(crate) fn compare(a: &Process, b: &Process, col: DetailColumn) -> Ordering {
         },
         // 没有读数（None）< 未启用 < 已启用。
         DetailColumn::EcoMode => a.eco_mode.cmp(&b.eco_mode),
+        // 没有读数（None）排在最小一端，0 比没有读数大。
+        DetailColumn::Network => match (a.net_rate, b.net_rate) {
+            (Some(x), Some(y)) => x.total_cmp(&y),
+            (x, y) => x.is_some().cmp(&y.is_some()),
+        },
+        // 未校验（None）< 未签名 < 校验失败 < 已验证（再按签名者不区分大小写比较）。
+        DetailColumn::Signature => {
+            let get = |p: &Process| {
+                let sig = p.info.as_ref()?.signature.as_ref()?.get()?;
+                Some((sig.rank(), if let Signature::Signed(n) = sig { n.to_lowercase() } else { String::new() }))
+            };
+            get(a).cmp(&get(b))
+        }
         // 没有服务（None）排在最小一端，其余按服务名列表（不区分大小写）比较。
         DetailColumn::Services => {
             let get = |p: &Process| p.services.as_ref().map(|s| s.iter().map(|n| n.to_lowercase()).collect::<Vec<_>>());
@@ -486,6 +514,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: s.map(|v| v.iter().map(|n| n.to_string()).collect::<Vec<_>>().into()),
             critical: false,

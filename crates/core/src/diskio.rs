@@ -10,6 +10,14 @@ pub const DISK_IO_GUID: u128 = 0x3d6fa8d4_fe05_11d0_9dda_00c04fd7ba7c;
 /// `Thread` 事件类 GUID：{3d6fa8d1-fe05-11d0-9dda-00c04fd7ba7c}。
 pub const THREAD_GUID: u128 = 0x3d6fa8d1_fe05_11d0_9dda_00c04fd7ba7c;
 
+/// `TcpIp` 事件类 GUID：{9a280ac0-c8e0-11d1-84e2-00c04fb998a2}。
+pub const TCP_IP_GUID: u128 = 0x9a280ac0_c8e0_11d1_84e2_00c04fb998a2;
+/// `UdpIp` 事件类 GUID：{bf3a50c5-a9c9-4988-a7e9-b2ab8d88e4a9}。
+pub const UDP_IP_GUID: u128 = 0xbf3a50c5_a9c9_4988_a7e9_b2ab8d88e4a9;
+
+/// TcpIp / UdpIp 的发送、接收（IPv4、IPv6）操作码，负载前两项都是 PID、size。
+const NET_OPCODES: [u8; 4] = [10, 11, 26, 27];
+
 const OPCODE_THREAD_START: u8 = 1;
 const OPCODE_THREAD_END: u8 = 2;
 /// 会话启动时对已有线程的“枚举”事件。
@@ -27,6 +35,8 @@ pub enum Event {
     ThreadEnd { tid: u32 },
     /// `tid` 为负载里的发起线程（版本低于 3 时没有）；`header_pid` 是事件头里的进程号，只在无法还原时兜底。
     DiskIo { tid: Option<u32>, header_pid: u32, bytes: u32 },
+    /// TCP / UDP 收发；`pid` 取自负载（事件头进程号在这类事件里不一定是所属进程）。
+    Net { pid: u32, bytes: u32 },
 }
 
 fn u32_at(p: &[u8], off: usize) -> Option<u32> {
@@ -53,6 +63,9 @@ pub fn parse(provider: u128, opcode: u8, version: u8, flags: u16, header_pid: u3
             let tid = if version >= 3 { u32_at(payload, 24 + 2 * ptr + 8) } else { None };
             Some(Event::DiskIo { tid, header_pid, bytes })
         }
+        TCP_IP_GUID | UDP_IP_GUID if NET_OPCODES.contains(&opcode) => {
+            Some(Event::Net { pid: u32_at(payload, 0)?, bytes: u32_at(payload, 4)? })
+        }
         _ => None,
     }
 }
@@ -69,6 +82,8 @@ const MAX_PIDS: usize = 1 << 16;
 pub struct Window {
     /// 每个进程读 + 写的字节数。
     pub bytes: HashMap<u32, u64>,
+    /// 每个进程收 + 发的网络字节数（TCP + UDP）。
+    pub net: HashMap<u32, u64>,
     /// 窗口内的磁盘事件数，以及其中无法还原发起线程、退回事件头进程号的事件数。
     pub events: u64,
     pub unresolved: u64,
@@ -93,6 +108,7 @@ pub struct DiskAggregator {
     /// 向系统查询也查不到所属进程的线程（已退出），本窗口内不再重复查询。
     missing: HashSet<u32>,
     bytes: HashMap<u32, u64>,
+    net: HashMap<u32, u64>,
     events: u64,
     unresolved: u64,
 }
@@ -149,6 +165,11 @@ impl DiskAggregator {
                     self.prune_ended();
                 }
             }
+            Event::Net { pid, bytes } => {
+                if self.net.len() < MAX_PIDS || self.net.contains_key(&pid) {
+                    *self.net.entry(pid).or_default() += u64::from(bytes);
+                }
+            }
             Event::DiskIo { tid, header_pid, bytes } => {
                 self.events += 1;
                 let pid = match tid.and_then(|t| self.threads.get(&t)) {
@@ -172,6 +193,7 @@ impl DiskAggregator {
         self.missing.clear();
         Window {
             bytes: std::mem::take(&mut self.bytes),
+            net: std::mem::take(&mut self.net),
             events: std::mem::take(&mut self.events),
             unresolved: std::mem::take(&mut self.unresolved),
         }
@@ -217,6 +239,24 @@ mod tests {
         if let Some(e) = parse(provider, opcode, version, FLAG_64_BIT_HEADER, header_pid, payload) {
             agg.apply(e);
         }
+    }
+
+    #[test]
+    fn network_events_accumulate_per_payload_pid() {
+        let mut agg = DiskAggregator::default();
+        let mut p = Vec::new();
+        p.extend(42u32.to_le_bytes());
+        p.extend(1500u32.to_le_bytes());
+        for (guid, op) in [(TCP_IP_GUID, 10), (TCP_IP_GUID, 27), (UDP_IP_GUID, 11)] {
+            feed(&mut agg, guid, op, 2, 999, &p);
+        }
+        // 其他操作码（如 Connect=12）与过短负载被忽略。
+        feed(&mut agg, TCP_IP_GUID, 12, 2, 999, &p);
+        feed(&mut agg, UDP_IP_GUID, 10, 2, 999, &p[..6]);
+        let w = agg.take();
+        assert_eq!(w.net.get(&42), Some(&4500));
+        assert_eq!(w.net.len(), 1);
+        assert!(agg.take().net.is_empty());
     }
 
     #[test]

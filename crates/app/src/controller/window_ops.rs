@@ -7,6 +7,7 @@
 //! - “切换到”被前台锁定拒绝时退化为闪烁任务栏，并在状态栏说明。
 //! - 非应用行（普通进程行、进程树 / 平铺视图下的行）整组菜单项隐藏。日志只记 PID、结果与错误码，不记窗口标题。
 
+use crate::i18n::tr;
 use super::process_menu::failure;
 use super::*;
 use crate::{ProcessMenu, texts};
@@ -116,7 +117,7 @@ impl Controller {
         let action = texts::window_op_name(op);
         let Some((key, name, handle)) = self.selected_window() else {
             self.log.borrow_mut().line(format!("窗口操作 拒绝 操作={op:?} 原因=所选行不是应用"));
-            self.report(STATUS_ERROR, failure(action, "所选行不是应用"));
+            self.report(STATUS_ERROR, failure(action, tr("所选行不是应用")));
             return;
         };
         let result = match handle {

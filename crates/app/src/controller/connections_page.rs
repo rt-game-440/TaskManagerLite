@@ -1,6 +1,7 @@
 //! 连接页（#77）：TCP / UDP 连接与监听端口。与启动项页、服务页相同，进入页面才枚举，
 //! 页面可见时随每次完整采样刷新，离开页面后不再刷新。
 
+use crate::i18n::{tr, trf};
 use super::*;
 use crate::texts;
 use crate::{ConnectionData, ConnectionRow};
@@ -135,7 +136,7 @@ impl Controller {
         if let Err(e) = work {
             self.connections.loading.set(false);
             if let Some(ui) = self.ui.upgrade() {
-                ui.global::<ConnectionData>().set_note(format!("无法创建后台线程：{e}").into());
+                ui.global::<ConnectionData>().set_note(trf("无法创建后台线程：{0}", &[&e]).into());
             }
         }
     }
@@ -169,7 +170,7 @@ impl Controller {
             }
             Err(e) => {
                 ui.global::<ConnectionData>()
-                    .set_note(format!("无法读取连接列表：{}", texts::connection_error(&e)).into());
+                    .set_note(trf("无法读取连接列表：{0}", &[&(texts::connection_error(&e))]).into());
                 self.log.borrow_mut().line(format!(
                     "连接页 枚举失败 协议={} 错误码={:?}",
                     e.protocol().name(),
@@ -238,9 +239,9 @@ impl Controller {
             ));
         } else {
             let note = if pid == 0 {
-                "PID 0 不是可跳转的进程".to_string()
+                tr("PID 0 不是可跳转的进程").to_string()
             } else {
-                format!("进程列表中没有 PID {pid}（可能已退出），请稍后重试")
+                trf("进程列表中没有 PID {0}（可能已退出），请稍后重试", &[&pid])
             };
             ui.global::<ConnectionData>().set_note(note.into());
             self.log.borrow_mut().line(format!("连接页 跳转到进程 PID={pid} 结果=找不到"));

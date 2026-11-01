@@ -921,6 +921,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: Some(Arc::from(vec!["旧".to_owned()])),
             critical: false,

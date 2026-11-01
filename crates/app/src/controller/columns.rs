@@ -1,13 +1,14 @@
 //! 进程列表的“详细信息”列：列选择、列宽，以及静态信息（用户名、路径等）的按需读取。
 
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use tml_core::{DetailColumn, SortKey};
 
 use super::{Controller, State};
 use crate::sampling::Command;
-use crate::details::{self, InfoWorker, Shown, needs_eco, needs_gpu, needs_services};
+use crate::details::{self, InfoWorker, SigWorker, Shown, needs_eco, needs_gpu, needs_services};
 use crate::{AppWindow, Columns, DetailChoice, DetailHeader};
 
 /// 详细信息列在排序序号中的起点：序号 = 100 + 列在 `DetailColumn::ALL` 中的位置。
@@ -59,6 +60,9 @@ fn assign<T: Clone + PartialEq + 'static>(m: &VecModel<T>, v: Vec<T>) {
     }
 }
 
+/// 签名结果刷新通知已投递、界面线程尚未处理。
+static SIG_REFRESH_QUEUED: AtomicBool = AtomicBool::new(false);
+
 /// 是否显示了需要读取静态信息的列。
 fn needs_static(shown: &[Shown]) -> bool {
     shown.iter().any(|s| s.column.needs_static())
@@ -108,7 +112,8 @@ impl Controller {
             let s = &mut *guard;
             let gpu_before = needs_gpu(&s.details);
             let eco_before = needs_eco(&s.details);
-            let services_before = needs_services(&s.details);
+            let marks = self.settings.borrow().row_marks;
+            let services_before = needs_services(&s.details) || marks;
             f(s);
             fix_sort(&mut s.opts.sort_key, &mut s.opts.descending, &s.details);
             // GPU 列只有显示时才让采样线程做进程级聚合；刚显示时会立即补采一次，尽快有值。
@@ -122,13 +127,14 @@ impl Controller {
                 self.sampler.send(Command::Eco(eco_after));
             }
             // “服务”列同理：只有显示时采样线程才枚举服务（带节流缓存）。
-            let services_after = needs_services(&s.details);
+            let services_after = needs_services(&s.details) || marks;
             if services_before != services_after {
                 self.sampler.send(Command::Services(services_after));
             }
         }
         self.sync_columns();
         self.track_info();
+        self.track_signatures();
         self.refresh_rows();
     }
 
@@ -204,6 +210,58 @@ impl Controller {
         worker.read(fresh);
     }
 
+    /// 显示了“签名”列时，把还没校验的路径交给签名校验线程（列没显示就不校验）。
+    pub(super) fn track_signatures(&self) {
+        let batch = {
+            let mut guard = self.state.borrow_mut();
+            let s = &mut *guard;
+            if !s.details.iter().any(|d| d.column == DetailColumn::Signature) {
+                return;
+            }
+            s.info.pending_signatures()
+        };
+        if batch.is_empty() {
+            return;
+        }
+        let worker = self.sig_worker.get_or_init(|| {
+            SigWorker::spawn(|| {
+                // 界面线程还没处理上一次通知时不再重复投递：启动时几百个路径的结果合并成少数几次刷新。
+                if SIG_REFRESH_QUEUED.swap(true, Ordering::AcqRel) {
+                    return;
+                }
+                let _ = slint::invoke_from_event_loop(|| {
+                    SIG_REFRESH_QUEUED.store(false, Ordering::Release);
+                    crate::CONTROLLER.with(|c| {
+                        if let Some(c) = c.borrow().as_ref() {
+                            c.refresh_rows();
+                            c.dump_signatures();
+                        }
+                    })
+                });
+            })
+        });
+        worker.verify(batch);
+    }
+
+    /// 自动化验收钩子：环境变量 `TML_SIGNATURE_DUMP=<文件>` 时，每次签名结果刷新把已校验的进程
+    /// 写成制表符分隔文本（PID、结果、签名者），路径与进程名不写入。
+    fn dump_signatures(&self) {
+        let Some(file) = std::env::var_os("TML_SIGNATURE_DUMP") else { return };
+        let s = self.state.borrow();
+        let mut out = String::new();
+        for p in &s.snapshot.processes {
+            let Some(sig) = p.info.as_ref().and_then(|i| i.signature.as_ref()).and_then(|x| x.get()) else { continue };
+            let (kind, name) = match sig {
+                tml_core::Signature::Signed(n) => ("signed", n.as_str()),
+                tml_core::Signature::Unsigned => ("unsigned", ""),
+                tml_core::Signature::Invalid => ("invalid", ""),
+            };
+            out.push_str(&format!("{}	{kind}	{name}
+", p.key.pid));
+        }
+        let _ = std::fs::write(file, out);
+    }
+
     /// 后台读到的一批静态信息。
     fn on_info(&self, batch: Vec<(tml_core::ProcessKey, Option<tml_core::StaticInfo>)>) {
         let changed = {
@@ -218,20 +276,21 @@ impl Controller {
             changed
         };
         if changed {
+            self.track_signatures();
             self.refresh_rows();
         }
     }
 
     /// 当前进程行的详细信息单元格文字。
-    /// `gpu`：GPU 列的值（应用行为合计，其余行为进程自己的）。
-    pub(super) fn detail_cells(s: &State, p: &tml_core::Process, gpu: Option<f32>) -> ModelRc<SharedString> {
+    /// `gpu`、`net`：GPU 列与网络列的值（应用行为合计，其余行为进程自己的）。
+    pub(super) fn detail_cells(s: &State, p: &tml_core::Process, gpu: Option<f32>, net: Option<f64>) -> ModelRc<SharedString> {
         if s.details.is_empty() {
             return ModelRc::default();
         }
         ModelRc::new(VecModel::from(
             s.details
                 .iter()
-                .map(|d| SharedString::from(details::cell(p, d.column, gpu)))
+                .map(|d| SharedString::from(details::cell(p, d.column, gpu, net)))
                 .collect::<Vec<_>>(),
         ))
     }

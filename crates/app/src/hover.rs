@@ -4,6 +4,7 @@
 //! CPU、磁盘曲线再带上该点当时占用最高的进程（`peak::ProcNames` 里查名字）；不额外采集任何东西。
 //! 纯逻辑，不依赖界面对象，可直接单测；界面接线在 `controller/hover.rs`。
 
+use crate::i18n::trf;
 use std::time::Instant;
 
 use crate::format;
@@ -139,7 +140,7 @@ fn point_lines(i: &Input, p: &Pt) -> (Vec<String>, Option<(f64, f64)>, Option<u3
         Some(bucket) => {
             lines.push(texts::hover_peak(&value(p.max)));
             lines.push(texts::hover_mean(&value(p.mean)));
-            lines.push(format!("{}（{}）", texts::hover_ago(p.age, true), texts::hover_bucket(bucket)));
+            lines.push(trf("{0}（{1}）", &[&(texts::hover_ago(p.age, true)), &(texts::hover_bucket(bucket))]));
         }
         None => {
             lines.push(value(p.max));

@@ -896,7 +896,16 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
                         ui.invoke_confirm_accepted();
                     }
                 }
-"window-activate" | "window-maximize" | "window-minimize" | "window-restore" => {
+"dump-mini" | "dump-full" => {
+                    // 目标路径取自环境变量 `TML_DUMP_PATH`（不弹保存对话框）；完整转储自动点确认框。
+                    menu.invoke_opening();
+                    eprintln!("{action} 菜单项 enabled={} 标题={}", menu.get_can_dump(), menu.get_dump_title());
+                    menu.invoke_create_dump(action == "dump-full");
+                    if ui.get_confirm_kind() != 0 {
+                        ui.invoke_confirm_accepted();
+                    }
+                }
+                "window-activate" | "window-maximize" | "window-minimize" | "window-restore" => {
                     // 与右键菜单一致：先按弹出前的逻辑设置各项状态（应用行需要 `:group`），再触发动作；
                     // 置灰时钩子仍触发一次，核对被拒绝的路径。
                     menu.invoke_opening();
@@ -978,6 +987,27 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
                                 Err(e) => eprintln!("截图失败：{e}"),
                             }
                         }
+                        let _ = slint::quit_event_loop();
+                    });
+                }
+                "details" => {
+                    // 打开详情窗口，稍等描述 / 公司读完后把模块数写进日志；设了 TML_DETAILS_SHOT 就保存窗口截图，随后退出。
+                    menu.invoke_show_details();
+                    if let Some(tab) = std::env::var("TML_DETAILS_TAB").ok().and_then(|v| v.parse::<i32>().ok()).filter(|t| *t > 0) {
+                        Timer::single_shot(Duration::from_millis(800), move || {
+                            crate::CONTROLLER.with(|c| {
+                                if let Some(c) = c.borrow().as_ref() {
+                                    c.details_select_tab(tab);
+                                }
+                            });
+                        });
+                    }
+                    Timer::single_shot(Duration::from_millis(2500), move || {
+                        crate::CONTROLLER.with(|c| {
+                            if let Some(c) = c.borrow().as_ref() {
+                                c.details_probe(std::env::var_os("TML_DETAILS_SHOT").as_deref().map(Path::new));
+                            }
+                        });
                         let _ = slint::quit_event_loop();
                     });
                 }
@@ -1107,7 +1137,7 @@ fn step(weak: slint::Weak<AppWindow>, dir: Rc<PathBuf>, i: usize) {
 }
 
 /// 写 32 位自上而下的 BMP，避免为开发工具引入图像编码依赖。
-fn write_bmp(path: &Path, buf: &SharedPixelBuffer<Rgba8Pixel>) -> std::io::Result<()> {
+pub(crate) fn write_bmp(path: &Path, buf: &SharedPixelBuffer<Rgba8Pixel>) -> std::io::Result<()> {
     let (w, h) = (buf.width(), buf.height());
     let pixels = w as usize * h as usize * 4;
     let mut out = Vec::with_capacity(54 + pixels);

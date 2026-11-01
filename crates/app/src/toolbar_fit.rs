@@ -25,6 +25,8 @@ fn toolbar_fits_every_width() {
     let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
     slint::platform::set_platform(Box::new(Headless(window))).expect("每个测试线程只设置一次平台");
     let ui = AppWindow::new().expect("创建界面");
+    // 固定按中文源文案量宽度：Slint 默认可能按系统语言（如 CI 的 en-US）选内置译文，英文更长会让断言随机器而变。
+    crate::i18n::apply_slint();
     for page in [0, 1, 2, 3, 4] {
         for (elevated, expanded) in [(false, true), (true, true), (false, false)] {
             ui.set_page(page);

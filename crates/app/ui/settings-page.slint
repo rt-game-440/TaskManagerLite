@@ -16,6 +16,14 @@ export global SettingsData {
     // 主题：0 跟随系统，1 浅色，2 深色。
     in-out property <int> theme;
     callback theme-selected(int);
+    in-out property <int> language;
+    callback language-selected(int);
+
+    // 进程列表：新启动 / 刚退出的行短暂高亮，行首类型色条。
+    in-out property <bool> highlight-changes;
+    callback highlight-changes-toggled(bool);
+    in-out property <bool> row-marks;
+    callback row-marks-toggled(bool);
 
     in-out property <bool> background-sampling;
     callback background-sampling-toggled(bool);
@@ -214,6 +222,17 @@ export component SettingsPage inherits Rectangle {
             SettingGroup {
                 title: @tr("外观");
                 SettingRow {
+                    title: @tr("语言");
+                    description: @tr("跟随系统时按 Windows 的显示语言选择，中文系统用简体中文，其他用 English。");
+                    SegmentedControl {
+                        model: [@tr("跟随系统"), @tr("简体中文"), "English"];
+                        current-index <=> SettingsData.language;
+                        selected(i) => {
+                            SettingsData.language-selected(i);
+                        }
+                    }
+                }
+                SettingRow {
                     title: @tr("主题");
                     description: @tr("跟随系统时随 Windows 的深浅色设置自动切换。");
                     SegmentedControl {
@@ -232,6 +251,34 @@ export component SettingsPage inherits Rectangle {
                     Switch {
                         accessible-label: @tr("窗口置顶");
                         checked <=> root.pinned;
+                    }
+                }
+            }
+
+            SettingGroup {
+                title: @tr("进程列表");
+                SettingRow {
+                    title: @tr("高亮新启动和刚退出的进程");
+                    description: @tr("新出现的进程行显示为绿色，刚退出的进程行显示为红色并保留约 1.5 秒后消失。关闭后列表行为与以前相同。");
+                    Switch {
+                        accessible-label: @tr("高亮新启动和刚退出的进程");
+                        checked <=> SettingsData.highlight-changes;
+                        toggled => {
+                            SettingsData.highlight-changes-toggled(self.checked);
+                        }
+                    }
+                }
+
+                SettingRow {
+                    title: @tr("按类型显示行首色条");
+                    description: @tr("关键进程为红色，已提权为橙色，系统账户为紫色，承载服务为蓝色。后三种依赖已读到的账户、权限与服务信息：显示对应的“详细信息”列后才有数据。");
+                    last: true;
+                    Switch {
+                        accessible-label: @tr("按类型显示行首色条");
+                        checked <=> SettingsData.row-marks;
+                        toggled => {
+                            SettingsData.row-marks-toggled(self.checked);
+                        }
                     }
                 }
             }
@@ -265,7 +312,7 @@ export component SettingsPage inherits Rectangle {
                 SettingRow {
                     title: @tr("精确统计进程磁盘读写");
                     shield: true;
-                    description: @tr("用 Windows 事件追踪（ETW）统计每个进程实际发生的磁盘读写。需要以管理员身份运行，否则使用系统的 I/O 计数（含网络与设备 I/O）。");
+                    description: @tr("用 Windows 事件追踪（ETW）统计每个进程实际发生的磁盘读写，同时提供“详细信息”里的进程“网络”列。需要以管理员身份运行，否则磁盘使用系统的 I/O 计数（含网络与设备 I/O），“网络”列显示“—”。");
                     note: !SettingsData.accurate-disk ? ""
                         : SettingsData.accurate-disk-active ? @tr("正在使用 ETW 统计")
                         : !root.elevated ? @tr("当前未以管理员身份运行，暂用系统 I/O 计数")

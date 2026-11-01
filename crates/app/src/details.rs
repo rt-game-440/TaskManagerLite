@@ -3,11 +3,13 @@
 //! 静态信息（用户名、路径、命令行、架构、是否提权、描述、公司）只在显示了这类列时才读取：
 //! 新出现的进程交给后台线程读一次，结果按进程缓存到进程退出，不进采样热路径。
 
+use crate::i18n::{tr, trf};
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::mpsc::{self, Sender};
 
-use tml_core::{DetailColumn, Process, ProcessKey, StaticInfo, StaticReader};
+use tml_core::{DetailColumn, Process, ProcessKey, SigSlot, Signature, StaticInfo, StaticReader};
 
 use crate::format;
 
@@ -18,26 +20,28 @@ pub const MAX_WIDTH: f32 = 1200.0;
 /// 列标题。
 pub fn title(c: DetailColumn) -> &'static str {
     match c {
-        DetailColumn::Status => "状态",
-        DetailColumn::User => "用户名",
-        DetailColumn::Session => "会话 ID",
-        DetailColumn::Priority => "优先级",
-        DetailColumn::Handles => "句柄",
-        DetailColumn::Threads => "线程",
-        DetailColumn::WorkingSet => "工作集",
-        DetailColumn::PeakWorkingSet => "峰值工作集",
-        DetailColumn::Commit => "提交大小",
-        DetailColumn::CpuTime => "CPU 时间",
-        DetailColumn::StartTime => "启动时间",
-        DetailColumn::Path => "映像路径",
-        DetailColumn::CommandLine => "命令行",
-        DetailColumn::Arch => "架构",
-        DetailColumn::Elevated => "已提权",
-        DetailColumn::Description => "描述",
-        DetailColumn::Company => "公司",
+        DetailColumn::Status => tr("状态"),
+        DetailColumn::User => tr("用户名"),
+        DetailColumn::Session => tr("会话 ID"),
+        DetailColumn::Priority => tr("优先级"),
+        DetailColumn::Handles => tr("句柄"),
+        DetailColumn::Threads => tr("线程"),
+        DetailColumn::WorkingSet => tr("工作集"),
+        DetailColumn::PeakWorkingSet => tr("峰值工作集"),
+        DetailColumn::Commit => tr("提交大小"),
+        DetailColumn::CpuTime => tr("CPU 时间"),
+        DetailColumn::StartTime => tr("启动时间"),
+        DetailColumn::Path => tr("映像路径"),
+        DetailColumn::CommandLine => tr("命令行"),
+        DetailColumn::Arch => tr("架构"),
+        DetailColumn::Elevated => tr("已提权"),
+        DetailColumn::Description => tr("描述"),
+        DetailColumn::Company => tr("公司"),
         DetailColumn::Gpu => "GPU",
-        DetailColumn::EcoMode => "效率模式",
-        DetailColumn::Services => "服务",
+        DetailColumn::EcoMode => tr("效率模式"),
+        DetailColumn::Services => tr("服务"),
+        DetailColumn::Network => tr("网络"),
+        DetailColumn::Signature => tr("签名"),
     }
 }
 
@@ -47,6 +51,8 @@ pub fn default_width(c: DetailColumn) -> f32 {
         DetailColumn::Session | DetailColumn::Threads | DetailColumn::Arch | DetailColumn::Gpu => 72.0,
         DetailColumn::Elevated | DetailColumn::Handles => 76.0,
         DetailColumn::EcoMode => 88.0,
+        DetailColumn::Network => 96.0,
+        DetailColumn::Signature => 200.0,
         DetailColumn::Services => 180.0,
         DetailColumn::Status | DetailColumn::Priority | DetailColumn::CpuTime => 88.0,
         DetailColumn::WorkingSet | DetailColumn::PeakWorkingSet | DetailColumn::Commit => 108.0,
@@ -71,6 +77,7 @@ pub fn right_aligned(c: DetailColumn) -> bool {
             | DetailColumn::Commit
             | DetailColumn::CpuTime
             | DetailColumn::Gpu
+            | DetailColumn::Network
     )
 }
 
@@ -86,12 +93,12 @@ pub fn default_descending(c: DetailColumn) -> bool {
 /// 基本优先级的名称，与原生任务管理器一致；不在常见档位上的显示数值。
 fn priority(base: i32) -> String {
     match base {
-        24.. => "实时".into(),
-        13..=23 => "高".into(),
-        10..=12 => "高于正常".into(),
-        8 | 9 => "正常".into(),
-        6 | 7 => "低于正常".into(),
-        1..=5 => "低".into(),
+        24.. => tr("实时").into(),
+        13..=23 => tr("高").into(),
+        10..=12 => tr("高于正常").into(),
+        8 | 9 => tr("正常").into(),
+        6 | 7 => tr("低于正常").into(),
+        1..=5 => tr("低").into(),
         other => other.to_string(),
     }
 }
@@ -103,17 +110,17 @@ pub fn cpu_time(t: u64) -> String {
 }
 
 /// 单元格文字。静态信息尚未读到或读不到时为空。
-/// `gpu`：GPU 列要显示的值——分组视图的应用行是自身加后代的合计，其余行就是进程自己的 `gpu_usage`。
-pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>) -> String {
+/// `gpu`、`net`：GPU 列与网络列要显示的值——分组视图的应用行是自身加后代的合计，其余行就是进程自己的 `gpu_usage` / `net_rate`。
+pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>, net: Option<f64>) -> String {
     let n = &p.counters;
     let info = p.info.as_deref();
     let text =
         |f: fn(&StaticInfo) -> Option<&str>| info.and_then(f).unwrap_or_default().to_string();
     match c {
         DetailColumn::Status => if n.suspended {
-            "已挂起"
+            tr("已挂起")
         } else {
-            "正在运行"
+            tr("正在运行")
         }
         .into(),
         DetailColumn::Session => n.session_id.to_string(),
@@ -136,20 +143,35 @@ pub fn cell(p: &Process, c: DetailColumn, gpu: Option<f32>) -> String {
             .map(|a| a.label())
             .unwrap_or_default(),
         DetailColumn::Elevated => match info.and_then(|i| i.elevated) {
-            Some(true) => "是".into(),
-            Some(false) => "否".into(),
+            Some(true) => tr("是").into(),
+            Some(false) => tr("否").into(),
             None => String::new(),
         },
         DetailColumn::Description => text(|i| i.description.as_deref()),
         DetailColumn::Company => text(|i| i.company.as_deref()),
         DetailColumn::Gpu => format::gpu_percent(gpu),
+        DetailColumn::Network => format::net_rate(net),
+        DetailColumn::Signature => signature_text(info),
         // 没有读数（进程打不开或系统不支持）留空；应用行显示应用自身进程的状态。
         DetailColumn::EcoMode => match p.eco_mode {
-            Some(true) => "已启用".into(),
-            Some(false) => "未启用".into(),
+            Some(true) => tr("已启用").into(),
+            Some(false) => tr("未启用").into(),
             None => String::new(),
         },
         DetailColumn::Services => p.services.as_deref().map(services_text).unwrap_or_default(),
+    }
+}
+
+/// “签名”列文字：校验没完成（含静态信息还没读到）显示“…”，读不到路径的进程留空。
+pub fn signature_text(info: Option<&StaticInfo>) -> String {
+    let Some(info) = info else { return "…".into() };
+    let Some(slot) = &info.signature else { return String::new() };
+    match slot.get() {
+        None => "…".into(),
+        Some(Signature::Signed(name)) if name.is_empty() => tr("已验证").into(),
+        Some(Signature::Signed(name)) => trf("已验证 · {0}", &[&name]),
+        Some(Signature::Unsigned) => tr("未签名").into(),
+        Some(Signature::Invalid) => tr("校验失败").into(),
     }
 }
 
@@ -158,9 +180,9 @@ pub const SERVICES_SHOWN: usize = 6;
 
 /// 服务名用“、”连接；超过 [`SERVICES_SHOWN`] 个时只列前几个并注明总数。界面与 CSV 导出共用。
 pub fn services_text(names: &[String]) -> String {
-    let shown = names.iter().take(SERVICES_SHOWN).map(String::as_str).collect::<Vec<_>>().join("、");
+    let shown = names.iter().take(SERVICES_SHOWN).map(String::as_str).collect::<Vec<_>>().join(tr("、"));
     if names.len() > SERVICES_SHOWN {
-        format!("{shown}…（共 {} 个）", names.len())
+        trf("{0}…（共 {1} 个）", &[&shown, &(names.len())])
     } else {
         shown
     }
@@ -193,6 +215,8 @@ pub struct Shown {
 pub struct InfoCache {
     /// `None` 表示已交给后台、结果未到。
     procs: HashMap<ProcessKey, Option<Arc<StaticInfo>>>,
+    /// 已交给签名校验线程的路径：每个路径只校验一次。
+    sig_queued: HashSet<PathBuf>,
 }
 
 impl InfoCache {
@@ -233,6 +257,19 @@ impl InfoCache {
     /// 不再显示静态列时释放全部缓存。
     pub fn clear(&mut self) {
         self.procs.clear();
+        self.sig_queued.clear();
+    }
+
+    /// 还没交给校验线程的路径及其结果槽位（每个路径只返回一次）。
+    pub fn pending_signatures(&mut self) -> Vec<(PathBuf, SigSlot)> {
+        let mut out = Vec::new();
+        for info in self.procs.values().flatten() {
+            let (Some(path), Some(slot)) = (&info.path, &info.signature) else { continue };
+            if slot.get().is_none() && self.sig_queued.insert(path.clone()) {
+                out.push((path.clone(), slot.clone()));
+            }
+        }
+        out
     }
 
     #[cfg(test)]
@@ -278,6 +315,40 @@ impl InfoWorker {
     }
 }
 
+/// 签名校验线程：最低优先级、单线程串行，不与采样和界面抢 CPU。
+#[derive(Clone)]
+pub struct SigWorker {
+    tx: Sender<Vec<(PathBuf, SigSlot)>>,
+}
+
+impl SigWorker {
+    /// `notify` 在后台线程上每校验完一个路径调用一次，负责（合并后）通知界面线程刷新。
+    pub fn spawn(notify: impl Fn() + Send + 'static) -> Self {
+        let (tx, rx) = mpsc::channel::<Vec<(PathBuf, SigSlot)>>();
+        std::thread::Builder::new()
+            .name("signature".into())
+            .spawn(move || {
+                tml_core::lower_current_thread_priority();
+                while let Ok(batch) = rx.recv() {
+                    for (path, slot) in batch {
+                        slot.set(tml_core::verify_signature(&path));
+                        notify();
+                        // 稍作停顿，让出 CPU 给采样与界面。
+                        std::thread::sleep(std::time::Duration::from_millis(2));
+                    }
+                }
+            })
+            .expect("无法创建签名校验线程");
+        Self { tx }
+    }
+
+    pub fn verify(&self, batch: Vec<(PathBuf, SigSlot)>) {
+        if !batch.is_empty() {
+            let _ = self.tx.send(batch);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -287,6 +358,26 @@ mod tests {
             pid,
             create_time: pid as u64,
         }
+    }
+
+    #[test]
+    fn signatures_are_queued_once_per_path_and_texts_follow_state() {
+        let slot = SigSlot::default();
+        let info = StaticInfo { path: Some("C:/a.exe".into()), signature: Some(slot.clone()), ..Default::default() };
+        let mut c = InfoCache::default();
+        c.track([key(1), key(2)]);
+        assert!(c.loaded(key(1), info.clone()));
+        assert!(c.loaded(key(2), info.clone()));
+        assert_eq!(c.pending_signatures().len(), 1);
+        assert!(c.pending_signatures().is_empty());
+        assert_eq!(signature_text(None), "…");
+        assert_eq!(signature_text(Some(&info)), "…");
+        assert_eq!(signature_text(Some(&StaticInfo::default())), "");
+        slot.set(Signature::Signed("Microsoft Windows".into()));
+        assert_eq!(signature_text(Some(&info)), "已验证 · Microsoft Windows");
+        let other = SigSlot::default();
+        other.set(Signature::Unsigned);
+        assert_eq!(signature_text(Some(&StaticInfo { signature: Some(other), ..Default::default() })), "未签名");
     }
 
     #[test]
@@ -360,6 +451,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
@@ -370,9 +462,9 @@ mod tests {
             },
             info: None,
         };
-        assert_eq!(cell(&p, DetailColumn::Status, None), "已挂起");
-        assert_eq!(cell(&p, DetailColumn::Handles, None), "12");
-        assert_eq!(cell(&p, DetailColumn::User, None), "");
+        assert_eq!(cell(&p, DetailColumn::Status, None, None), "已挂起");
+        assert_eq!(cell(&p, DetailColumn::Handles, None, None), "12");
+        assert_eq!(cell(&p, DetailColumn::User, None, None), "");
         let p = Process {
             info: Some(Arc::new(StaticInfo {
                 elevated: Some(true),
@@ -380,7 +472,7 @@ mod tests {
             })),
             ..p
         };
-        assert_eq!(cell(&p, DetailColumn::Elevated, None), "是");
+        assert_eq!(cell(&p, DetailColumn::Elevated, None, None), "是");
     }
 
     #[test]
@@ -393,32 +485,33 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
             counters: Default::default(),
             info: None,
         };
-        assert_eq!(cell(&p, DetailColumn::EcoMode, None), "");
+        assert_eq!(cell(&p, DetailColumn::EcoMode, None, None), "");
         let on = Process { eco_mode: Some(true), ..p.clone() };
         let off = Process { eco_mode: Some(false), ..p.clone() };
-        assert_eq!(cell(&on, DetailColumn::EcoMode, None), "已启用");
-        assert_eq!(cell(&off, DetailColumn::EcoMode, None), "未启用");
+        assert_eq!(cell(&on, DetailColumn::EcoMode, None, None), "已启用");
+        assert_eq!(cell(&off, DetailColumn::EcoMode, None, None), "未启用");
         // 服务列（#85）：不承载服务为空；多个服务用“、”连接；过多时截断并注明总数。
-        assert_eq!(cell(&p, DetailColumn::Services, None), "");
+        assert_eq!(cell(&p, DetailColumn::Services, None, None), "");
         let names = |n: usize| (1..=n).map(|i| format!("S{i}")).collect::<Vec<_>>();
         let hosting = |n: usize| Process { services: Some(names(n).into()), ..p.clone() };
-        assert_eq!(cell(&hosting(1), DetailColumn::Services, None), "S1");
-        assert_eq!(cell(&hosting(3), DetailColumn::Services, None), "S1、S2、S3");
-        assert_eq!(cell(&hosting(SERVICES_SHOWN), DetailColumn::Services, None), "S1、S2、S3、S4、S5、S6");
-        assert_eq!(cell(&hosting(SERVICES_SHOWN + 4), DetailColumn::Services, None), "S1、S2、S3、S4、S5、S6…（共 10 个）");
+        assert_eq!(cell(&hosting(1), DetailColumn::Services, None, None), "S1");
+        assert_eq!(cell(&hosting(3), DetailColumn::Services, None, None), "S1、S2、S3");
+        assert_eq!(cell(&hosting(SERVICES_SHOWN), DetailColumn::Services, None, None), "S1、S2、S3、S4、S5、S6");
+        assert_eq!(cell(&hosting(SERVICES_SHOWN + 4), DetailColumn::Services, None, None), "S1、S2、S3、S4、S5、S6…（共 10 个）");
         assert!(needs_services(&[Shown { column: DetailColumn::Services, width: 180.0 }]));
         assert!(!needs_services(&[Shown { column: DetailColumn::Gpu, width: 72.0 }]));
         assert!(needs_eco(&[Shown { column: DetailColumn::EcoMode, width: 88.0 }]));
         assert!(!needs_eco(&[Shown { column: DetailColumn::Gpu, width: 72.0 }]));
-        assert_eq!(cell(&p, DetailColumn::Gpu, p.gpu_usage), "—");
-        assert_eq!(cell(&p, DetailColumn::Gpu, Some(0.0)), "0%");
-        assert_eq!(cell(&p, DetailColumn::Gpu, Some(37.46)), "37.5%");
+        assert_eq!(cell(&p, DetailColumn::Gpu, p.gpu_usage, None), "—");
+        assert_eq!(cell(&p, DetailColumn::Gpu, Some(0.0), None), "0%");
+        assert_eq!(cell(&p, DetailColumn::Gpu, Some(37.46), None), "37.5%");
         assert!(right_aligned(DetailColumn::Gpu) && default_descending(DetailColumn::Gpu));
     }
 }

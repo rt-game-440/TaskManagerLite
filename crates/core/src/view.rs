@@ -82,6 +82,8 @@ pub struct Totals {
     pub disk_rate: f64,
     /// GPU 占用合计，同 CPU 口径合计后不超过 100；自身和全部后代都没有读数时为 `None`。
     pub gpu_usage: Option<f32>,
+    /// 网络速率合计；自身和全部后代都没有读数时为 `None`。
+    pub net_rate: Option<f64>,
 }
 
 /// 标题行的 `index`：它不对应任何进程，误当下标用会立即越界而不是悄悄指向别的进程。
@@ -292,6 +294,10 @@ pub fn build_group_view(snapshot: &ProcessSnapshot, apps: &HashSet<u32>, opts: &
             sum.cpu_usage += procs[c].cpu_usage;
             sum.private_working_set += procs[c].private_working_set;
             sum.disk_rate += procs[c].disk_rate;
+            sum.net_rate = match (sum.net_rate, procs[c].net_rate) {
+                (None, None) => None,
+                (a, b) => Some(a.unwrap_or(0.0) + b.unwrap_or(0.0)),
+            };
             sum.gpu_usage = match (sum.gpu_usage, procs[c].gpu_usage) {
                 (None, None) => None,
                 (a, b) => Some(a.unwrap_or(0.0) + b.unwrap_or(0.0)),
@@ -332,6 +338,7 @@ pub fn build_group_view(snapshot: &ProcessSnapshot, apps: &HashSet<u32>, opts: &
             private_working_set: t.private_working_set,
             disk_rate: t.disk_rate,
             gpu_usage: t.gpu_usage,
+            net_rate: t.net_rate,
         });
         out.push(ViewRow { index: i, depth, has_children: !children[i].is_empty(), expanded, header: None, totals });
         if expanded {
@@ -398,6 +405,7 @@ mod tests {
             private_working_set: 0,
             disk_rate: 0.0,
             gpu_usage: None,
+            net_rate: None,
             eco_mode: None,
             services: None,
             critical: false,
@@ -573,7 +581,7 @@ mod tests {
         // 应用行：自身 + 全部后代；子进程行与后台行没有合计。
         assert_eq!(
             rows[1].totals,
-            Some(Totals { cpu_usage: 9.0, private_working_set: 700, disk_rate: 7.0, gpu_usage: None })
+            Some(Totals { cpu_usage: 9.0, private_working_set: 700, disk_rate: 7.0, gpu_usage: None, net_rate: None })
         );
         assert!(rows[2].totals.is_none() && rows[3].totals.is_none());
         assert!(rows.last().unwrap().totals.is_none());

@@ -1,3 +1,4 @@
+use crate::i18n::{tr, trf};
 use super::*;
 use crate::{ServiceData, ServiceRow};
 use std::sync::{Arc, Mutex};
@@ -167,7 +168,7 @@ impl Controller {
             self.log.borrow_mut().line(format!("服务启动类型 服务={} 目标={} 结果=未改变", service.name, t.key().unwrap_or("?")));
             return;
         }
-        let hint = if tml_core::is_elevated() || !elevate { "" } else { "（需要管理员权限，请在 UAC 对话框中确认）" };
+        let hint = if tml_core::is_elevated() || !elevate { "" } else { tr("（需要管理员权限，请在 UAC 对话框中确认）") };
         data.set_note(texts::service_pending(action, &name, hint).into());
         data.set_busy(true);
         self.services_work(Some((service.name, name, action, elevate)), false);
@@ -191,7 +192,7 @@ impl Controller {
                     let log = match action {
                         // 修改启动类型只记服务名、目标类型、结果与错误码。
                         Action::SetStartType(t) => start_type_log(name, *t, &result),
-                        _ => format!("服务操作 {text}"),
+                        _ => trf("服务操作 {0}", &[&text]),
                     };
                     (text, log)
                 });
@@ -221,7 +222,7 @@ impl Controller {
             if let Some(ui) = self.ui.upgrade() {
                 let data = ui.global::<ServiceData>();
                 data.set_busy(false);
-                data.set_note(format!("无法创建后台线程：{e}").into());
+                data.set_note(trf("无法创建后台线程：{0}", &[&e]).into());
             }
         }
     }
@@ -261,7 +262,7 @@ impl Controller {
             }
             Err(e) => {
                 if note.is_none() {
-                    data.set_note(format!("无法读取服务列表：{}", texts::service_error(&e)).into());
+                    data.set_note(trf("无法读取服务列表：{0}", &[&(texts::service_error(&e))]).into());
                 }
                 self.log.borrow_mut().line(format!("服务页 枚举失败 {}", texts::service_error(&e)));
             }
@@ -312,7 +313,7 @@ impl Controller {
         let data = ui.global::<ServiceData>();
         data.set_filter("".into());
         data.set_filter_pid(pid as i32);
-        data.set_filter_process(format!("{name}（PID {pid}）").into());
+        data.set_filter_process(trf("{0}（PID {1}）", &[&name, &pid]).into());
         data.set_selected(-1);
         self.services.goto_pid.set(pid);
         self.show_services();
@@ -337,7 +338,7 @@ impl Controller {
         if shown > 0 {
             data.set_selected(0);
         } else {
-            data.set_note(format!("PID {pid} 当前没有承载运行中的服务").into());
+            data.set_note(trf("PID {0} 当前没有承载运行中的服务", &[&pid]).into());
         }
         self.log.borrow_mut().line(format!(
             "服务页 按进程过滤 PID={pid} 显示 {shown}/{} 选中={}",
@@ -374,7 +375,7 @@ impl Controller {
             ));
         } else {
             ui.global::<ServiceData>()
-                .set_note(format!("进程列表中没有 PID {}（可能已退出），请稍后重试", service.pid).into());
+                .set_note(trf("进程列表中没有 PID {0}（可能已退出），请稍后重试", &[&service.pid]).into());
         }
     }
 
@@ -445,8 +446,8 @@ fn start_type_menu(current: StartType, block: Option<StartTypeBlock>) -> StartTy
         checked: StartType::SETTABLE.iter().position(|&t| t == current).map_or(-1, |i| i as i32),
         enabled: block.is_none(),
         title: match block {
-            None => "启动类型".into(),
-            Some(b) => format!("启动类型（{}）", texts::start_type_block(b)),
+            None => tr("启动类型").into(),
+            Some(b) => trf("启动类型（{0}）", &[&(texts::start_type_block(b))]),
         },
     }
 }
@@ -455,7 +456,7 @@ fn start_type_menu(current: StartType, block: Option<StartTypeBlock>) -> StartTy
 fn start_type_log(name: &str, target: StartType, result: &Result<(), ServiceError>) -> String {
     let target = target.key().unwrap_or("?");
     match result {
-        Ok(()) => format!("服务启动类型 服务={name} 目标={target} 结果=成功"),
+        Ok(()) => trf("服务启动类型 服务={0} 目标={1} 结果=成功", &[&name, &target]),
         Err(e) => format!("服务启动类型 服务={name} 目标={target} 结果=失败 错误码={} 原因={e:?}", e.exit_code()),
     }
 }

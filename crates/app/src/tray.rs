@@ -7,6 +7,7 @@
 //! - 图标在运行时按像素画出（蓝底圆角方块 + 白色折线），没有资源文件，也不依赖外壳的图标缓存。
 //! - 全部在界面线程使用；回调由 Slint 的事件循环（同一个 Win32 消息循环）派发。
 
+use crate::i18n::tr;
 use std::cell::RefCell;
 use std::sync::Once;
 use std::sync::atomic::{AtomicIsize, Ordering};
@@ -277,8 +278,8 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, message: u32, wparam: WPARAM, lpa
 fn show_menu(hwnd: HWND) -> Option<usize> {
     let menu: HMENU = unsafe { CreatePopupMenu() }.ok()?;
     let chosen = unsafe {
-        let _ = AppendMenuW(menu, MF_STRING, CMD_SHOW, w!("显示窗口"));
-        let _ = AppendMenuW(menu, MF_STRING, CMD_EXIT, w!("退出"));
+        let _ = AppendMenuW(menu, MF_STRING, CMD_SHOW, &windows::core::HSTRING::from(tr("显示窗口")));
+        let _ = AppendMenuW(menu, MF_STRING, CMD_EXIT, &windows::core::HSTRING::from(tr("退出")));
         let _ = SetMenuDefaultItem(menu, CMD_SHOW as u32, 0);
         let mut at = POINT::default();
         let _ = GetCursorPos(&mut at);

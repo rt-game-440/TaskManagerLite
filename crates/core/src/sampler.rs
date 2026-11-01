@@ -340,6 +340,11 @@ impl Sampler {
                 if !std::mem::replace(&mut self.etw_ready, true) {
                     return DiskSource::Approximate;
                 }
+                // 网络事件的 PID 直接来自负载，不受磁盘线程归属质量影响，先填。
+                let net = rates(&window.net, elapsed);
+                for p in &mut snapshot.processes {
+                    p.net_rate = Some(net.get(&p.key.pid).copied().unwrap_or(0.0));
+                }
                 // 运行时校验：无法归属到发起线程的事件太多时，ETW 的按进程数据不可信，保持近似值。
                 if !window.trustworthy() {
                     return DiskSource::Approximate;

@@ -27,6 +27,14 @@ pub struct WindowRect {
     pub height: f32,
 }
 
+/// 进程详情窗口的尺寸与列宽（#74）。
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DetailsWindow {
+    pub width: f32,
+    pub height: f32,
+    pub widths: [f32; 5],
+}
+
 /// 迷你模式（#19）。
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MiniSettings {
@@ -95,6 +103,8 @@ impl Default for ColumnWidths {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     pub window: Option<WindowRect>,
+    /// 进程详情窗口（#74）：宽、高与模块表五列宽度（名称 / 基址 / 大小 / 描述 / 公司）。
+    pub details_window: Option<DetailsWindow>,
     pub maximized: bool,
     /// 采样间隔：0 = 0.5 秒，1 = 1 秒，2 = 2 秒，3 = 暂停。
     pub interval_index: i32,
@@ -111,6 +121,12 @@ pub struct Settings {
     pub details: Vec<Shown>,
     /// 用 ETW 统计进程磁盘速率（需要管理员权限，默认关闭，见 ADR-0004）。
     pub accurate_disk_io: bool,
+    /// 新启动 / 刚退出的进程行短暂高亮（#79，默认开）。
+    pub highlight_changes: bool,
+    /// 高亮保留的毫秒数（只在设置文件里调，限制在 500–5000）。
+    pub highlight_ms: u32,
+    /// 进程行首的类型色条（#80，默认关）。
+    pub row_marks: bool,
     /// 窗口置顶。
     pub always_on_top: bool,
     /// 用户选择用本程序接管 Ctrl+Shift+Esc（IFEO 登记，见 ADR 0003）。这只是意愿，登记是否有效以注册表为准。
@@ -121,6 +137,8 @@ pub struct Settings {
     pub close_to_tray: bool,
     /// 主题：0 跟随系统，1 浅色，2 深色。
     pub theme: i32,
+    /// 界面语言：0 跟随系统，1 简体中文，2 English（缺省按跟随系统）。
+    pub language: i32,
     /// 左侧边栏折叠为仅图标。默认展开；窗口过窄时界面会自行收成图标，不改这个值。
     pub sidebar_collapsed: bool,
     pub mini: MiniSettings,
@@ -136,6 +154,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             window: None,
+            details_window: None,
             maximized: false,
             interval_index: 1,
             view: ViewMode::Flat,
@@ -146,11 +165,15 @@ impl Default for Settings {
             columns: ColumnWidths::default(),
             details: Vec::new(),
             accurate_disk_io: false,
+            highlight_changes: true,
+            highlight_ms: 1500,
+            row_marks: false,
             always_on_top: false,
             replace_taskmgr: false,
             background_sampling: false,
             close_to_tray: false,
             theme: 0,
+            language: 0,
             sidebar_collapsed: false,
             mini: MiniSettings::default(),
             run_history: Vec::new(),
@@ -182,6 +205,7 @@ pub fn push_run_history(history: &mut Vec<String>, input: &str) {
 // `tree` 是旧版的布尔视图开关，读取时迁移为 `view`，保存时不再写出。
 const KNOWN: &[&str] = &[
     "window",
+    "details_window",
     "interval_index",
     "tree",
     "view",
@@ -193,6 +217,10 @@ const KNOWN: &[&str] = &[
     "always_on_top",
     "replace_taskmgr",
     "accurate_disk_io",
+    "language",
+    "highlight_changes",
+    "highlight_ms",
+    "row_marks",
     "background_sampling",
     "close_to_tray",
     "theme",
@@ -204,6 +232,9 @@ const KNOWN: &[&str] = &[
 
 /// `theme` 字段的取值，下标即 [`Settings::theme`]。
 const THEMES: [&str; 3] = ["system", "light", "dark"];
+
+/// `language` 字段的取值，下标即 [`Settings::language`]。
+const LANGUAGES: [&str; 3] = ["system", "zh", "en"];
 
 fn int<T: TryFrom<i64>>(o: &Map<String, Value>, key: &str) -> Option<T> {
     T::try_from(o.get(key)?.as_i64()?).ok()
@@ -288,6 +319,21 @@ impl Settings {
             s.window = Some(WindowRect { x, y, width, height });
             s.maximized = w.get("maximized").and_then(Value::as_bool).unwrap_or(false);
         }
+        if let Some(d) = o.get("details_window").and_then(Value::as_object)
+            && let (Some(width), Some(height)) = (float(d, "width"), float(d, "height"))
+            && width >= 200.0
+            && height >= 100.0
+            && let Some(list) = d.get("columns").and_then(Value::as_array)
+            && list.len() == 5
+        {
+            let mut widths = [0.0; 5];
+            for (slot, v) in widths.iter_mut().zip(list) {
+                *slot = v.as_f64().filter(|w| w.is_finite()).unwrap_or(0.0) as f32;
+            }
+            if widths.iter().all(|w| (20.0..=2000.0).contains(w)) {
+                s.details_window = Some(DetailsWindow { width, height, widths });
+            }
+        }
         if let Some(i) = int::<i32>(o, "interval_index")
             && (0..=3).contains(&i)
         {
@@ -347,6 +393,9 @@ impl Settings {
         if let Some(t) = o.get("theme").and_then(Value::as_str).and_then(|t| THEMES.iter().position(|&n| n == t)) {
             s.theme = t as i32;
         }
+        if let Some(t) = o.get("language").and_then(Value::as_str).and_then(|t| LANGUAGES.iter().position(|&n| n == t)) {
+            s.language = t as i32;
+        }
         if let Some(m) = o.get("mini").and_then(Value::as_object) {
             let flag = |key: &str, default: bool| m.get(key).and_then(Value::as_bool).unwrap_or(default);
             s.mini.active = flag("active", false);
@@ -363,6 +412,15 @@ impl Settings {
         }
         if let Some(b) = o.get("accurate_disk_io").and_then(Value::as_bool) {
             s.accurate_disk_io = b;
+        }
+        if let Some(b) = o.get("highlight_changes").and_then(Value::as_bool) {
+            s.highlight_changes = b;
+        }
+        if let Some(n) = o.get("highlight_ms").and_then(Value::as_u64) {
+            s.highlight_ms = n.clamp(500, 5000) as u32;
+        }
+        if let Some(b) = o.get("row_marks").and_then(Value::as_bool) {
+            s.row_marks = b;
         }
         // 历史逐条容错：非字符串、空串与重复项被跳过，次序与文件一致（最新在前），最多保留若干条。
         if let Some(list) = o.get("run_history").and_then(Value::as_array) {
@@ -412,6 +470,13 @@ impl Settings {
             m.insert("maximized".into(), self.maximized.into());
             o.insert("window".into(), Value::Object(m));
         }
+        if let Some(d) = self.details_window {
+            let mut m = Map::new();
+            m.insert("width".into(), number(d.width));
+            m.insert("height".into(), number(d.height));
+            m.insert("columns".into(), Value::Array(d.widths.iter().map(|w| number(*w)).collect()));
+            o.insert("details_window".into(), Value::Object(m));
+        }
         o.insert("interval_index".into(), self.interval_index.into());
         o.insert("view".into(), view_mode_name(self.view).into());
         let mut sort = Map::new();
@@ -438,12 +503,16 @@ impl Settings {
             .collect();
         o.insert("detail_columns".into(), Value::Array(shown));
         o.insert("accurate_disk_io".into(), self.accurate_disk_io.into());
+        o.insert("highlight_changes".into(), self.highlight_changes.into());
+        o.insert("highlight_ms".into(), self.highlight_ms.into());
+        o.insert("row_marks".into(), self.row_marks.into());
         o.insert("always_on_top".into(), self.always_on_top.into());
         o.insert("replace_taskmgr".into(), self.replace_taskmgr.into());
         o.insert("background_sampling".into(), self.background_sampling.into());
         o.insert("close_to_tray".into(), self.close_to_tray.into());
         o.insert("sidebar_collapsed".into(), self.sidebar_collapsed.into());
         o.insert("theme".into(), THEMES[self.theme.clamp(0, 2) as usize].into());
+        o.insert("language".into(), LANGUAGES[self.language.clamp(0, 2) as usize].into());
         let mut m = Map::new();
         m.insert("active".into(), self.mini.active.into());
         if let Some((x, y)) = self.mini.position {
@@ -556,6 +625,10 @@ mod tests {
                 Shown { column: DetailColumn::Handles, width: 76.0 },
             ],
             accurate_disk_io: true,
+            language: 2,
+            highlight_changes: false,
+            highlight_ms: 3000,
+            row_marks: true,
             always_on_top: true,
             replace_taskmgr: true,
             background_sampling: true,
@@ -565,6 +638,7 @@ mod tests {
             mini: MiniSettings { active: true, position: Some((-1500, 40)), on_top: false, opacity: 80 },
             run_history: vec!["notepad".into(), r#""C:\Program Files\x\a.exe" --flag"#.into()],
             history_window: Window::Min10,
+            details_window: Some(DetailsWindow { width: 900.0, height: 500.0, widths: [100.0, 110.0, 90.0, 200.0, 160.0] }),
             extra: Map::new(),
         }
     }
@@ -674,6 +748,20 @@ mod tests {
         assert_eq!(parse(r#"{"theme": "blue"}"#).theme, 0);
         assert_eq!(parse(r#"{"theme": 2}"#).theme, 0);
         assert!(Settings { theme: 1, ..Settings::default() }.to_json().contains(r#""theme": "light""#));
+        // 语言：缺字段 / 未知值按跟随系统，写出为字符串键。
+        assert_eq!(Settings::default().details_window, None);
+        let d = parse(r#"{"details_window": {"width": 900, "height": 500, "columns": [100, 110, 90, 200, 160]}}"#).details_window.unwrap();
+        assert_eq!((d.width, d.widths[1]), (900.0, 110.0));
+        assert!(parse(r#"{"details_window": {"width": 900, "height": 500, "columns": [100, 110]}}"#).details_window.is_none());
+        assert!(parse(r#"{"details_window": {"width": 900, "height": 500, "columns": [1, 110, 90, 200, 160]}}"#).details_window.is_none());
+        let round = Settings { details_window: Some(d), ..Settings::default() };
+        assert_eq!(parse(&round.to_json()).details_window, Some(d));
+        assert_eq!(Settings::default().language, 0);
+        assert_eq!(parse(r#"{"theme": "dark"}"#).language, 0);
+        assert_eq!(parse(r#"{"language": "zh"}"#).language, 1);
+        assert_eq!(parse(r#"{"language": "en"}"#).language, 2);
+        assert_eq!(parse(r#"{"language": "fr"}"#).language, 0);
+        assert!(Settings { language: 2, ..Settings::default() }.to_json().contains(r#""language": "en""#));
     }
 
     #[test]
