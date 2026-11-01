@@ -52,18 +52,21 @@ export component Segment inherits Rectangle {
         }
     }
 
-    Text {
-        text: root.text;
-        font-size: 12px;
-        color: root.active ? Palette.foreground : Theme.subtle-text;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        Text {
+            text: root.text;
+            font-size: 12px;
+            color: root.active ? Palette.foreground : Theme.subtle-text;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
     }
 }
 
 // “整体利用率 / 逻辑处理器”视图切换。
 export component CpuModeSwitch inherits Rectangle {
-    width: 176px;
     height: 24px;
     border-radius: 7px;
     border-width: 1px;

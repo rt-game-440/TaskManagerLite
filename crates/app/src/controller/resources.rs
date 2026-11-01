@@ -198,6 +198,11 @@ impl ResourceSet {
         set
     }
 
+    /// 语言切换后让下一次 `sync_devices` 按新语言重建实例标题。
+    pub fn invalidate_texts(&mut self) {
+        self.disk_key.push((u32::MAX, Vec::new()));
+    }
+
     pub fn sync_devices(&mut self, disks: &[tml_core::PhysicalDisk], networks: &[tml_core::NetworkAdapter]) {
         let nk: Vec<_> = networks.iter().map(|n| (n.id.clone(), n.name.clone(), n.connection)).collect();
         let dk: Vec<_> = disks.iter().map(|d| (d.number, d.volumes.iter().map(|v| v.mount.clone()).collect())).collect();

@@ -874,6 +874,10 @@ impl Controller {
     /// 语言切换后重算带 Rust 文案的部分：托盘提示与进程列表。
     fn refresh_after_language(&self) {
         {
+            let mut s = self.state.borrow_mut();
+            s.resources.invalidate_texts();
+        }
+        {
             let s = self.state.borrow();
             self.update_tray_tip(&s);
         }
