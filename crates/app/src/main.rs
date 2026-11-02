@@ -38,13 +38,14 @@ thread_local! {
 const RENDERER: &str = if cfg!(feature = "renderer-software") { "software" } else { "femtovg" };
 
 /// 开发用参数：测量、截图与 `--allow-multiple` 不受单实例限制，也不占用单实例锁。
-const UNRESTRICTED_FLAGS: [&str; 11] = [
+const UNRESTRICTED_FLAGS: [&str; 12] = [
     "--measure-startup",
     "--screenshot",
     "--menu-shot",
     "--menu-action",
     "--service-action",
     "--connections-action",
+    "--check-update",
     "--export-csv",
     "--history-prefill",
     "--hover",
@@ -84,7 +85,7 @@ fn main() -> Result<(), slint::PlatformError> {
     log.line(format!("进入 main {entered:.1} ms"));
 
     // 设置在创建窗口前读取（一个很小的文件）；开发模式不读写用户设置，保证截图与测量可复现。
-    let dev_mode = measure || std::env::args().any(|a| a == "--screenshot" || a == "--menu-shot" || a == "--menu-action" || a == "--service-action" || a == "--connections-action" || a == "--hover-shot");
+    let dev_mode = measure || std::env::args().any(|a| a == "--screenshot" || a == "--menu-shot" || a == "--menu-action" || a == "--service-action" || a == "--connections-action" || a == "--check-update" || a == "--hover-shot");
     let store = if dev_mode { None } else { settings::Store::from_env() };
     let (loaded, outcome) = store.as_ref().map_or((settings::Settings::default(), None), |s| {
         let (settings, outcome) = s.load();
@@ -194,6 +195,10 @@ fn main() -> Result<(), slint::PlatformError> {
     // `--connections-action <dump|goto:<pid>[:<本地端口>]>`：自动化验收连接页（#77，数据经 TML_CONNECTIONS_DUMP 写出，结果写日志）。
     if let Some(spec) = std::env::args().skip_while(|a| a != "--connections-action").nth(1) {
         controller.queue_connections_action(&spec);
+    }
+    // `--check-update`：自动化验收检查更新（#99）。查询一次，结果写日志后退出；配合 TML_UPDATE_URL 指向本地模拟服务。
+    if std::env::args().any(|a| a == "--check-update") {
+        controller.check_update(true);
     }
 
     // `--export-csv <process|performance>=<路径>`：自动化验收 CSV 导出（不弹对话框，写完即退出，读写设置与正常启动相同）。

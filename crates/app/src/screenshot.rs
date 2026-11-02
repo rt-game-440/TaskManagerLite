@@ -535,6 +535,16 @@ const STEPS: &[Step] = &[
             delta_y: -3000.0,
         });
     }),
+    // 往回滚到“更新”分组（#99），填一条模拟的检查结果看说明换行（不联网）。
+    ("61c-设置页更新-深色-760x600", |ui| {
+        let d = ui.global::<SettingsData>();
+        d.set_update_note(crate::i18n::trf("发现新版本 {0}：\n{1}", &[&"0.4.0", &"新功能\n进程页表头显示整机占用\n性能页左栏宽度可拖动…"]).into());
+        ui.window().dispatch_event(WindowEvent::PointerScrolled {
+            position: LogicalPosition::new(380.0, 300.0),
+            delta_x: 0.0,
+            delta_y: 380.0,
+        });
+    }),
     // 再点一次设置按钮回到进入之前的页面（性能页）。
     ("62-设置页返回-深色", |ui| {
         let need = ui.get_toolbar_min_width();

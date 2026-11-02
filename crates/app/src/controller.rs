@@ -98,6 +98,8 @@ pub struct Controller {
     suspend: suspend::SuspendState,
     dump: dump::DumpState,
     details: process_details::DetailsState,
+    /// 检查更新（#99）：是否在查询、最近一次发现的新版本发布页。
+    update: settings_page::UpdateState,
     ui: slint::Weak<AppWindow>,
     rows: Rc<VecModel<ProcRow>>,
     resources: Rc<VecModel<Resource>>,
@@ -336,6 +338,7 @@ impl Controller {
             suspend: Default::default(),
             dump: Default::default(),
             details: Default::default(),
+            update: Default::default(),
             ui: ui.as_weak(),
             rows,
             resources,

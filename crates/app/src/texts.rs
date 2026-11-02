@@ -15,6 +15,7 @@ use tml_core::ConnectionKind;
 use tml_core::connections::{ConnectionError, TcpState};
 use tml_core::services::{Action, ServiceError, ServiceState, StartType, StartTypeBlock};
 use tml_core::startup::{SourceError, StartupError, StartupSource};
+use tml_core::update::{UpdateError, UpdateStatus};
 use tml_core::{
     AutostartError, DumpError, DumpKind, DebuggerValue, ElevationError, IfeoError, MediaType, PriorityClass, ProcessControlError, RunError,
     ShellError, SystemError, UnsafeReason, WindowError, WindowOp,
@@ -266,6 +267,32 @@ pub fn run_error(e: &RunError) -> String {
         // 2 找不到文件，3 找不到路径。
         RunError::System(SystemError::Win32(2 | 3)) => tr("找不到指定的程序、文件、文件夹或网址，请检查输入是否正确").into(),
         RunError::System(e) => trf("无法启动：{0}", &[&e]),
+    }
+}
+
+/// 检查更新失败的原因（#99），显示为“检查失败：…”。
+pub fn update_error(e: &UpdateError) -> String {
+    let reason: String = match e {
+        UpdateError::BadCurrentVersion(v) => trf("当前程序的版本号无法识别（{0}）", &[&v]),
+        UpdateError::Timeout => tr("连接超时，请检查网络后重试").into(),
+        UpdateError::Unreachable(code) => trf("无法连接到 GitHub，请检查网络或代理设置（错误码 {0}）", &[&code]),
+        UpdateError::Secure(code) => trf("安全连接失败，可能被代理或安全软件拦截（错误码 {0}）", &[&code]),
+        UpdateError::Network(e) => trf("网络错误：{0}", &[&e]),
+        UpdateError::NoRelease => tr("还没有正式发布的版本").into(),
+        UpdateError::RateLimited => tr("请求过于频繁，GitHub 暂时拒绝访问，请稍后再试").into(),
+        UpdateError::Http(status) => trf("服务器返回了错误（HTTP {0}）", &[&status]),
+        UpdateError::BadResponse => tr("服务器返回的内容无法识别").into(),
+        UpdateError::BadTag(tag) => trf("最新发布的标签不是有效的版本号（{0}）", &[&tag]),
+    };
+    trf("检查失败：{0}", &[&reason])
+}
+
+/// 检查更新的结果（#99）。`summary` 为发布说明摘要（可为空）。
+pub fn update_status(status: &UpdateStatus, summary: &str) -> String {
+    match status {
+        UpdateStatus::UpToDate { latest } => trf("已是最新版本（最新正式版 {0}）", &[&latest]),
+        UpdateStatus::Available(r) if summary.is_empty() => trf("发现新版本 {0}", &[&r.version]),
+        UpdateStatus::Available(r) => trf("发现新版本 {0}：\n{1}", &[&r.version, &summary]),
     }
 }
 
@@ -962,6 +989,20 @@ mod tests {
         let other = SystemError::Other { code: -2147467259, message: "未指定的错误".into() };
         assert_eq!(run_error(&RunError::System(other)), "无法启动：未指定的错误");
         assert_eq!(browse_filters()[1], ("所有文件", "*.*"));
+    }
+
+    #[test]
+    fn update_texts_are_readable() {
+        use tml_core::update::{Release, UpdateError, UpdateStatus, Version};
+        assert_eq!(update_error(&UpdateError::Timeout), "检查失败：连接超时，请检查网络后重试");
+        assert!(update_error(&UpdateError::Unreachable(12007)).contains("12007"));
+        assert_eq!(update_error(&UpdateError::Http(502)), "检查失败：服务器返回了错误（HTTP 502）");
+        assert!(update_error(&UpdateError::BadTag("nightly".into())).contains("nightly"));
+        let v = |s: &str| Version::parse(s).unwrap();
+        assert_eq!(update_status(&UpdateStatus::UpToDate { latest: v("0.3.0") }, ""), "已是最新版本（最新正式版 0.3.0）");
+        let r = Release { version: v("0.4.0"), tag: "v0.4.0".into(), name: String::new(), notes: String::new(), url: String::new() };
+        assert_eq!(update_status(&UpdateStatus::Available(r.clone()), ""), "发现新版本 0.4.0");
+        assert_eq!(update_status(&UpdateStatus::Available(r), "新功能"), "发现新版本 0.4.0：\n新功能");
     }
 
     #[test]

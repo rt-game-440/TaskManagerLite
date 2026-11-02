@@ -43,6 +43,15 @@ export global SettingsData {
     in property <string> settings-path;
     callback open-settings-folder();
 
+    // 检查更新（#99 一期）：当前版本、是否正在查询、结果说明（失败时为红色）。
+    in property <string> app-version;
+    in property <bool> update-busy;
+    in property <string> update-note;
+    in property <bool> update-error;
+    // 发现新版本时“打开 Releases 页面”打开该版本的发布页，否则打开 Releases 列表。
+    callback check-update();
+    callback open-releases();
+
     // 每次进入设置页时调用：重新读取以注册表为准的开机启动与接管状态。
     callback refresh();
 }
@@ -343,6 +352,35 @@ export component SettingsPage inherits Rectangle {
                         checked <=> SettingsData.replace-taskmgr;
                         toggled => {
                             SettingsData.replace-taskmgr-toggled(self.checked);
+                        }
+                    }
+                }
+            }
+
+            SettingGroup {
+                title: @tr("更新");
+                SettingRow {
+                    title: @tr("检查更新");
+                    description: @tr("当前版本 {}。查询 GitHub 上的最新正式版，只在点击时联网，不会自动下载或安装。", SettingsData.app-version);
+                    note: SettingsData.update-busy ? @tr("正在检查…") : SettingsData.update-note;
+                    note-error: SettingsData.update-error && !SettingsData.update-busy;
+                    Button {
+                        text: @tr("检查更新");
+                        enabled: !SettingsData.update-busy;
+                        clicked => {
+                            SettingsData.check-update();
+                        }
+                    }
+                }
+
+                SettingRow {
+                    title: @tr("发布页面");
+                    description: @tr("在浏览器中打开 GitHub Releases 页面，查看各版本的更新说明并下载安装包。");
+                    last: true;
+                    Button {
+                        text: @tr("打开 Releases 页面");
+                        clicked => {
+                            SettingsData.open-releases();
                         }
                     }
                 }
