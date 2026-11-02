@@ -302,6 +302,7 @@ impl Controller {
         ui.set_page(settings.page);
         ui.set_sidebar_expanded(!settings.sidebar_collapsed);
         ui.set_history_window_index(settings.history_window.index());
+        ui.set_perf_sidebar_width(settings.perf_sidebar_width as f32);
         let cols = ui.global::<Columns>();
         cols.set_pid(settings.columns.pid);
         cols.set_cpu(settings.columns.cpu);
@@ -667,6 +668,8 @@ impl Controller {
         };
         settings.always_on_top = ui.get_pinned();
         settings.sidebar_collapsed = !ui.get_sidebar_expanded();
+        settings.perf_sidebar_width = (ui.get_perf_sidebar_width().round() as u32)
+            .clamp(crate::settings::PERF_SIDEBAR_MIN, crate::settings::PERF_SIDEBAR_MAX);
         let cols = ui.global::<Columns>();
         settings.columns = ColumnWidths {
             pid: cols.get_pid(),

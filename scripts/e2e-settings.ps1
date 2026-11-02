@@ -248,6 +248,17 @@ try {
     Close-App $app
     Check ((Get-Content $settingsFile -Raw | ConvertFrom-Json).language -eq 'system') '旧文件缺 language 字段时写回 system'
 
+    '== 5g3. 性能页左栏宽度：perf_sidebar_width 读入后写回，越界钳制，缺字段按 240（#97） =='
+    $dir = New-Dir 'perf-sidebar'
+    $settingsFile = Join-Path $dir 'settings.json'
+    foreach ($case in @(@{ In = '{ "perf_sidebar_width": 320 }'; Want = 320 }, @{ In = '{ "perf_sidebar_width": 5000 }'; Want = 480 }, @{ In = '{ "perf_sidebar_width": 20 }'; Want = 180 }, @{ In = '{ "page": 0 }'; Want = 240 })) {
+        $case.In | Set-Content -Encoding utf8 $settingsFile
+        $app = Start-App $dir
+        Close-App $app
+        $got = (Get-Content $settingsFile -Raw | ConvertFrom-Json).perf_sidebar_width
+        Check ($got -eq $case.Want) "$($case.In) 写回 perf_sidebar_width = $($case.Want)，实际 $got"
+    }
+
     '== 5h. 详细信息列：顺序、宽度与按详细信息列排序被恢复并写回；排序列未显示时回到默认排序 =='
     $dir = New-Dir 'details'
     $settingsFile = Join-Path $dir 'settings.json'

@@ -146,6 +146,8 @@ pub struct Settings {
     pub run_history: Vec<String>,
     /// 性能页曲线的时间窗口（#86）；缺失或不认识的值按 60 秒处理。迷你模式固定 60 秒，不受它影响。
     pub history_window: Window,
+    /// 性能页左栏宽度（逻辑像素，#97）；缺失按默认，越界钳制到 [`PERF_SIDEBAR_MIN`]–[`PERF_SIDEBAR_MAX`]。
+    pub perf_sidebar_width: u32,
     /// 本版本不认识的顶层字段，保存时原样写回。
     extra: Map<String, Value>,
 }
@@ -178,10 +180,16 @@ impl Default for Settings {
             mini: MiniSettings::default(),
             run_history: Vec::new(),
             history_window: Window::default(),
+            perf_sidebar_width: PERF_SIDEBAR_DEFAULT,
             extra: Map::new(),
         }
     }
 }
+
+/// 性能页左栏宽度：默认、最小、最大（逻辑像素，#97）。界面里的最大值还会随窗口宽度再收紧。
+pub const PERF_SIDEBAR_DEFAULT: u32 = 240;
+pub const PERF_SIDEBAR_MIN: u32 = 180;
+pub const PERF_SIDEBAR_MAX: u32 = 480;
 
 /// 运行新任务的输入历史保留条数。
 pub const RUN_HISTORY_MAX: usize = 10;
@@ -228,6 +236,7 @@ const KNOWN: &[&str] = &[
     "mini",
     "run_history",
     "history_window",
+    "perf_sidebar_width",
 ];
 
 /// `theme` 字段的取值，下标即 [`Settings::theme`]。
@@ -431,6 +440,9 @@ impl Settings {
         if let Some(w) = o.get("history_window").and_then(Value::as_str).and_then(Window::from_key) {
             s.history_window = w;
         }
+        if let Some(n) = o.get("perf_sidebar_width").and_then(Value::as_f64).filter(|n| *n >= 0.0) {
+            s.perf_sidebar_width = (n.round() as u32).clamp(PERF_SIDEBAR_MIN, PERF_SIDEBAR_MAX);
+        }
         if let Some(b) = o.get("always_on_top").and_then(Value::as_bool) {
             s.always_on_top = b;
         }
@@ -524,6 +536,7 @@ impl Settings {
         o.insert("mini".into(), Value::Object(m));
         o.insert("run_history".into(), Value::Array(self.run_history.iter().cloned().map(Value::String).collect()));
         o.insert("history_window".into(), self.history_window.key().into());
+        o.insert("perf_sidebar_width".into(), self.perf_sidebar_width.into());
         let mut text = serde_json::to_string_pretty(&Value::Object(o)).unwrap_or_default();
         text.push('\n');
         text
@@ -638,6 +651,7 @@ mod tests {
             mini: MiniSettings { active: true, position: Some((-1500, 40)), on_top: false, opacity: 80 },
             run_history: vec!["notepad".into(), r#""C:\Program Files\x\a.exe" --flag"#.into()],
             history_window: Window::Min10,
+            perf_sidebar_width: 333,
             details_window: Some(DetailsWindow { width: 900.0, height: 500.0, widths: [100.0, 110.0, 90.0, 200.0, 160.0] }),
             extra: Map::new(),
         }
@@ -781,6 +795,22 @@ mod tests {
         // 旧版文件保存后带上默认值。
         let out: Value = serde_json::from_str(&parse(r#"{"view": "tree"}"#).to_json()).unwrap();
         assert_eq!(out["history_window"], "60s");
+    }
+
+    #[test]
+    fn 性能页左栏宽度缺失按默认且越界钳制() {
+        assert_eq!(Settings::default().perf_sidebar_width, 240);
+        assert_eq!(parse(r#"{"view": "tree"}"#).perf_sidebar_width, 240);
+        for (raw, want) in [("300", 300), ("180", 180), ("480", 480), ("10", 180), ("9999", 480), ("0", 180), ("260.6", 261)] {
+            assert_eq!(parse(&format!(r#"{{"perf_sidebar_width": {raw}}}"#)).perf_sidebar_width, want, "{raw}");
+        }
+        for bad in ["\"300\"", "null", "true", "-5", "[300]"] {
+            let s = parse(&format!(r#"{{"perf_sidebar_width": {bad}, "view": "tree"}}"#));
+            assert_eq!(s.perf_sidebar_width, 240, "{bad}");
+            assert_eq!(s.view, ViewMode::Tree, "{bad}：不影响其他设置");
+        }
+        let out: Value = serde_json::from_str(&Settings { perf_sidebar_width: 320, ..Settings::default() }.to_json()).unwrap();
+        assert_eq!(out["perf_sidebar_width"], 320);
     }
 
     #[test]
