@@ -37,6 +37,8 @@ export struct DetailHeader {
     right: bool,
     // 排序编号：100 + 该列在全部可选列中的序号。
     sort: int,
+    // 表头上行显示哪项整机占用（#96）：0 无、1 GPU、2 网络。
+    total: int,
 }
 
 // 列选择菜单中的一项（全部可选列，按固定顺序）。

@@ -165,6 +165,11 @@ impl Controller {
                 width: d.width,
                 right: details::right_aligned(d.column),
                 sort: sort_index(d.column),
+                total: match d.column {
+                    DetailColumn::Gpu => 1,
+                    DetailColumn::Network => 2,
+                    _ => 0,
+                },
             })
             .collect();
         cols.set_extra_total(s.details.iter().map(|d| d.width).sum());

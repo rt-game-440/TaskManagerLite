@@ -1005,6 +1005,9 @@ impl Controller {
             }
             s.first_data = true;
             self.update_tray_tip(&s);
+            if fresh {
+                self.update_header_totals(&s);
+            }
             if fresh || s.mini {
                 if fresh && std::mem::take(&mut s.report_history) {
                     let (points, gaps, step) = s.resources.history(resources::CPU).stats();
@@ -1094,6 +1097,19 @@ impl Controller {
                 self.rows.set_row_data(i, row);
             }
         }
+    }
+
+    /// 进程页表头上行的整机占用（#96）：只用本次采样已有的系统级数据。
+    fn update_header_totals(&self, s: &State) {
+        let Some(ui) = self.ui.upgrade() else { return };
+        use crate::header_totals::{HeaderTotals, text};
+        let t = HeaderTotals::compute(&s.system, &s.disks, &s.networks, &s.gpus);
+        let cols = ui.global::<Columns>();
+        cols.set_total_cpu(text(t.cpu).into());
+        cols.set_total_memory(text(t.memory).into());
+        cols.set_total_disk(text(t.disk).into());
+        cols.set_total_gpu(text(t.gpu).into());
+        cols.set_total_network(text(t.network).into());
     }
 
     /// 迷你图的尺寸与 performance-page.slint 中 ResourceCard 的布局一致。

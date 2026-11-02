@@ -684,9 +684,9 @@ fn right_click_header_does_not_select(ui: &AppWindow) {
     );
     let before = ui.get_selected();
     let w = ui.window();
-    // 顶栏 56 + 表头 34 + 半行 15；在名称列和展开箭头位置各右键一次。
+    // 顶栏 56 + 表头 52 + 半行 15；在名称列和展开箭头位置各右键一次。
     for x in [120.0, 15.0] {
-        let at = LogicalPosition::new(sidebar_w(ui) + x, 56.0 + 34.0 + 15.0);
+        let at = LogicalPosition::new(sidebar_w(ui) + x, 56.0 + 52.0 + 15.0);
         w.dispatch_event(WindowEvent::PointerMoved { position: at });
         w.dispatch_event(WindowEvent::PointerPressed {
             position: at,
@@ -757,15 +757,15 @@ pub fn run_menu(ui: &AppWindow, spec: &str, warmup: Duration) {
             cols.invoke_toggle_detail(1);
             cols.invoke_toggle_detail(5);
         }
-        // 等列表布局完成后，在第一行名称列上右键（顶栏 56 + 表头 34 + 半行 15）。
+        // 等列表布局完成后，在第一行名称列上右键（顶栏 56 + 表头 52 + 半行 15）。
         Timer::single_shot(Duration::from_millis(500), move || {
             let Some(ui) = weak.upgrade() else { return };
             let at = LogicalPosition::new(
                 sidebar_w(&ui) + 120.0,
                 if header {
-                    56.0 + 17.0
+                    56.0 + 26.0
                 } else {
-                    56.0 + 34.0 + 15.0
+                    56.0 + 52.0 + 15.0
                 },
             );
             let w = ui.window();
@@ -1037,7 +1037,7 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
 
 /// 在表头（y = 56 + 17）的 `x` 处按下并水平拖动 `dx` 逻辑像素。
 fn drag(ui: &AppWindow, x: f32, dx: f32) {
-    let y = 56.0 + 17.0;
+    let y = 56.0 + 26.0;
     let w = ui.window();
     let at = |x: f32| LogicalPosition::new(x, y);
     // 抓在列边缘右侧 2 像素处，落在 8 像素宽的拖动区内。

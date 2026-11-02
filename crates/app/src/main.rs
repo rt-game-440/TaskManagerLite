@@ -4,6 +4,7 @@ mod controller;
 mod details;
 mod file_dialog;
 mod format;
+mod header_totals;
 mod history;
 mod highlight;
 mod i18n;
