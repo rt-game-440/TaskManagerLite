@@ -2,7 +2,8 @@ import { Button, Palette, ListView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { HeaderCell } from "process-page.slint";
 // 一条连接（#77）。can-goto：PID 不为 0 且当前进程快照里有该进程，“转到进程”才可用。
-export struct ConnectionRow { name: string, pid: int, protocol: string, local: string, remote: string, state: string, can-goto: bool }
+// icon：进程图标（#98），与进程页共用同一图标缓存；取不到时为默认图标，加载中为空白。
+export struct ConnectionRow { icon: image, name: string, pid: int, protocol: string, local: string, remote: string, state: string, can-goto: bool }
 // 连接页的数据与回调，由 Rust 维护（见 controller/connections_page.rs）。
 export global ConnectionData {
     in property <[ConnectionRow]> rows;
@@ -63,7 +64,8 @@ export component ConnectionsPage inherits Rectangle {
                 }
                 HorizontalLayout {
                     padding-left: 10px; padding-right: 10px; spacing: 0px;
-                    Cell { text: row.name; min-width: 110px; horizontal-stretch: 1; }
+                    Image { y: (parent.height - self.height) / 2; width: 16px; height: 16px; source: row.icon; image-fit: contain; }
+                    Cell { text: row.name; min-width: 94px; horizontal-stretch: 1; }
                     Cell { text: "\{row.pid}"; width: 72px; right: true; }
                     Cell { text: row.protocol; width: 64px; }
                     Cell { text: row.local; min-width: 130px; horizontal-stretch: 1; }

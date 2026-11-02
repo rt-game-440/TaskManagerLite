@@ -34,12 +34,18 @@ pub(super) struct ConnectionsState {
     hook: RefCell<Option<String>>,
 }
 
-/// 显示中的一条连接：连接本身加上按 PID 从进程快照查到的进程名。
+/// 当前进程快照的 PID → (进程标识, 进程名)。
+type Procs = HashMap<u32, (ProcessKey, String)>;
+
+/// 显示中的一条连接：连接本身加上按 PID 从进程快照查到的进程名与进程标识。
 #[derive(Debug, Clone, PartialEq)]
 struct Shown {
     conn: Connection,
     /// 进程名；快照里查不到为 `None`（显示“—”）。
     name: Option<String>,
+    /// 用来查图标的进程标识（#98）；PID 0 或快照里查不到为 `None`（显示默认图标）。
+    /// 同一 PID 的多条连接得到同一个标识，共用进程页的同一份图标缓存。
+    key: Option<ProcessKey>,
 }
 
 impl Shown {
@@ -158,8 +164,8 @@ impl Controller {
                     self.log.borrow_mut().line(format!("连接页 枚举 {n} 条连接 {} ms", elapsed.as_millis()));
                 }
                 if let Some(path) = &dump {
-                    let names = self.process_names();
-                    let text: String = all.iter().map(|c| dump_line(c, names.get(&c.pid).map(String::as_str))).collect();
+                    let procs = self.process_names();
+                    let text: String = all.iter().map(|c| dump_line(c, procs.get(&c.pid).map(|(_, n)| n.as_str()))).collect();
                     if let Err(e) = std::fs::write(path, text) {
                         self.log.borrow_mut().line(format!("连接页 写出数据失败 错误码={:?}", e.raw_os_error()));
                     }
@@ -181,9 +187,33 @@ impl Controller {
         self.run_connections_hook();
     }
 
-    /// 当前进程快照的 PID → 进程名。
-    fn process_names(&self) -> HashMap<u32, String> {
-        self.state.borrow().snapshot.processes.iter().map(|p| (p.key.pid, p.name.clone())).collect()
+    /// 当前进程快照的 PID → (进程标识, 进程名)。
+    fn process_names(&self) -> Procs {
+        self.state.borrow().snapshot.processes.iter().map(|p| (p.key.pid, (p.key, p.name.clone()))).collect()
+    }
+
+    /// 连接行的图标：与进程页共用同一份图标缓存，不额外请求（缓存本来就跟踪快照里的全部进程）。
+    fn connection_icon(&self, s: &State, shown: &Shown) -> Image {
+        s.icons.icon_or_default(shown.key).cloned().unwrap_or_else(|| self.blank_icon.clone())
+    }
+
+    /// 图标到达后刷新连接页里用到它的行；页面不可见时不做（进入页面时会整体重建）。
+    pub(super) fn update_connection_icons(&self) {
+        let Some(ui) = self.ui.upgrade() else { return };
+        if ui.get_page() != CONNECTIONS_PAGE {
+            return;
+        }
+        let s = self.state.borrow();
+        let rows = &self.connections.rows;
+        for (i, e) in self.connections.entries.borrow().iter().enumerate() {
+            let icon = self.connection_icon(&s, e);
+            if let Some(mut row) = rows.row_data(i)
+                && row.icon != icon
+            {
+                row.icon = icon;
+                rows.set_row_data(i, row);
+            }
+        }
     }
 
     fn selected_connection(&self) -> Option<Shown> {
@@ -198,16 +228,17 @@ impl Controller {
         let data = ui.global::<ConnectionData>();
         let (key, descending) = (data.get_sort_key(), data.get_descending());
         let needle = data.get_filter().trim().to_lowercase();
-        let names = self.process_names();
-        let mut entries = visible(&self.connections.all.borrow(), &names, &needle);
+        let procs = self.process_names();
+        let mut entries = visible(&self.connections.all.borrow(), &procs, &needle);
         entries.sort_by(|a, b| compare(a, b, key, descending));
         let selected = self
             .selected_connection()
             .and_then(|old| entries.iter().position(|e| e.conn.key() == old.conn.key()));
         let rows = &self.connections.rows;
         let old = rows.row_count();
+        let state = self.state.borrow();
         for (i, e) in entries.iter().enumerate() {
-            let row = connection_row(e);
+            let row = connection_row(e, self.connection_icon(&state, e));
             if i < old {
                 if rows.row_data(i).as_ref() != Some(&row) {
                     rows.set_row_data(i, row);
@@ -216,6 +247,7 @@ impl Controller {
                 rows.push(row);
             }
         }
+        drop(state);
         for i in (entries.len()..old).rev() {
             rows.remove(i);
         }
@@ -299,23 +331,31 @@ fn dump_line(c: &Connection, name: Option<&str>) -> String {
 }
 
 /// 搜索文字（已去空白转小写）过滤后的连接，附带进程名。可搜进程名、PID、协议、地址、端口、状态。
-fn visible(all: &[Connection], names: &HashMap<u32, String>, needle: &str) -> Vec<Shown> {
+fn visible(all: &[Connection], procs: &Procs, needle: &str) -> Vec<Shown> {
     all.iter()
-        .map(|c| Shown { conn: c.clone(), name: names.get(&c.pid).cloned() })
+        .map(|c| {
+            let found = procs.get(&c.pid);
+            Shown {
+                conn: c.clone(),
+                name: found.map(|(_, n)| n.clone()),
+                key: found.filter(|_| c.pid != 0).map(|(k, _)| *k),
+            }
+        })
         .filter(|s| needle.is_empty() || matches(s, needle))
         .collect()
 }
 
 fn matches(s: &Shown, needle: &str) -> bool {
-    let row = connection_row(s);
+    let row = connection_row(s, Image::default());
     [row.name.as_str(), &s.conn.pid.to_string(), row.protocol.as_str(), row.local.as_str(), row.remote.as_str(), row.state.as_str()]
         .iter()
         .any(|t| t.to_lowercase().contains(needle))
 }
 
-fn connection_row(s: &Shown) -> ConnectionRow {
+fn connection_row(s: &Shown, icon: Image) -> ConnectionRow {
     let c = &s.conn;
     ConnectionRow {
+        icon,
         name: s.name_text().into(),
         pid: c.pid as i32,
         protocol: c.protocol.name().into(),
@@ -366,7 +406,11 @@ mod tests {
         Connection { protocol: Protocol::Udp, local: local.parse().unwrap(), remote: None, state: None, pid }
     }
 
-    fn sample() -> (Vec<Connection>, HashMap<u32, String>) {
+    fn pkey(pid: u32) -> ProcessKey {
+        ProcessKey { pid, create_time: u64::from(pid) * 10 }
+    }
+
+    fn sample() -> (Vec<Connection>, Procs) {
         let all = vec![
             tcp("0.0.0.0:135", "0.0.0.0:0", TcpState::Listen, 1200),
             tcp("192.168.1.5:50000", "20.1.2.3:443", TcpState::Established, 4000),
@@ -374,11 +418,25 @@ mod tests {
             udp("0.0.0.0:5353", 3000),
             tcp("127.0.0.1:9000", "127.0.0.1:9001", TcpState::TimeWait, 0),
         ];
-        let names = [(1200, "svchost.exe"), (4000, "chrome.exe"), (4, "System")]
+        let names = [(1200, "svchost.exe"), (4000, "chrome.exe"), (4, "System"), (0, "Idle")]
             .into_iter()
-            .map(|(p, n)| (p, n.to_string()))
+            .map(|(p, n)| (p, (pkey(p), n.to_string())))
             .collect();
         (all, names)
+    }
+
+    #[test]
+    fn icon_key_per_connection() {
+        let (mut all, names) = sample();
+        all.push(tcp("0.0.0.0:7680", "0.0.0.0:0", TcpState::Listen, 4000));
+        let shown = visible(&all, &names, "");
+        let keys = |pid| shown.iter().filter(|s| s.conn.pid == pid).map(|s| s.key).collect::<Vec<_>>();
+        // PID 0 即使快照里有 Idle 也用默认图标；不在快照的进程同样没有标识。
+        assert_eq!(keys(0), [None]);
+        assert_eq!(keys(3000), [None]);
+        // 同一 PID 的多条连接共用同一个标识（同一份缓存图标）。
+        assert_eq!(keys(4000), [Some(pkey(4000)); 2]);
+        assert_eq!(keys(1200), [Some(pkey(1200))]);
     }
 
     fn pids(v: &[Shown]) -> Vec<u32> {
@@ -409,9 +467,9 @@ mod tests {
         assert_eq!((by_pid(3000).name_text(), by_pid(3000).can_goto()), ("—", false));
         // PID 0（TIME_WAIT 等）不可跳转。
         assert!(!by_pid(0).can_goto());
-        let row = connection_row(by_pid(3000));
+        let row = connection_row(by_pid(3000), Image::default());
         assert_eq!((row.protocol.as_str(), row.remote.as_str(), row.state.as_str()), ("UDP", "", ""));
-        let row = connection_row(by_pid(4));
+        let row = connection_row(by_pid(4), Image::default());
         assert_eq!((row.protocol.as_str(), row.local.as_str(), row.state.as_str()), ("TCP6", "[::]:445", "监听"));
     }
 

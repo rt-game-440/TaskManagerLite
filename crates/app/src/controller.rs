@@ -1074,6 +1074,7 @@ impl Controller {
                 self.icon_worker.extract(wanted, self.icon_px.get());
                 // 拿不到路径的进程此时就能用默认图标。
                 self.update_icons(|_, key| touched.contains(&key));
+                self.update_connection_icons();
             }
             icons::Event::Icon { path, px, pixels } => {
                 // 显示缩放变化前发出的请求，尺寸已不对。
@@ -1083,6 +1084,7 @@ impl Controller {
                 let image = pixels.map(Image::from_rgba8);
                 self.state.borrow_mut().icons.loaded(path.as_deref(), image);
                 self.update_icons(|s, key| s.icons.depends_on(key, path.as_deref()));
+                self.update_connection_icons();
             }
         }
     }
