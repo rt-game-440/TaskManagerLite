@@ -4,31 +4,31 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "0.5 秒"
 msgstr "0.5 s"
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "1 小时"
 msgstr "1 h"
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "1 秒"
 msgstr "1 s"
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "10 分钟"
 msgstr "10 min"
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "2 秒"
 msgstr "2 s"
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "5 分钟"
 msgstr "5 min"
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "60 秒"
 msgstr "60 s"
 
@@ -36,7 +36,7 @@ msgstr "60 s"
 msgid "CPU"
 msgstr "CPU"
 
-#: ui/app.slint:941
+#: ui/app.slint:944
 msgid "CPU {0}"
 msgstr "CPU {0}"
 
@@ -48,7 +48,7 @@ msgstr "CPU {}"
 msgid "CPU 时间"
 msgstr "CPU time"
 
-#: ui/settings-page.slint:319
+#: ui/settings-page.slint:328
 msgid "ETW 会话未能启动，暂用系统 I/O 计数"
 msgstr "The ETW session could not start; using system I/O counters for now"
 
@@ -56,7 +56,7 @@ msgstr "The ETW session could not start; using system I/O counters for now"
 msgid "PID"
 msgstr "PID"
 
-#: ui/app.slint:970
+#: ui/app.slint:973
 msgid "{0} 已经退出"
 msgstr "{0} has already exited"
 
@@ -76,23 +76,23 @@ msgstr "Context switches"
 msgid "不透明度"
 msgstr "Opacity"
 
-#: ui/settings-page.slint:290
+#: ui/settings-page.slint:299
 msgid "与顶栏的刷新间隔相同。暂停后数据与曲线都停止更新。"
 msgstr "Same as the refresh interval in the top bar. While paused, both data and graphs stop updating."
 
-#: ui/performance-page.slint:391
+#: ui/performance-page.slint:431
 msgid "专用显存"
 msgstr "Dedicated GPU memory"
 
-#: ui/settings-page.slint:236
+#: ui/settings-page.slint:245
 msgid "主题"
 msgstr "Theme"
 
-#: ui/settings-page.slint:411 ui/settings-page.slint:419
+#: ui/settings-page.slint:449 ui/settings-page.slint:457
 msgid "仅进程页。"
 msgstr "Processes page only."
 
-#: ui/settings-page.slint:403
+#: ui/settings-page.slint:441
 msgid "仅进程页，复制为制表符分隔的文字；搜索框里按下则复制所选文字。"
 msgstr "Processes page only. Copies as tab-separated text; inside the search box it copies the selected text instead."
 
@@ -108,7 +108,7 @@ msgstr "Exit anyway?"
 msgid "以管理员权限创建此任务"
 msgstr "Create this task with administrator privileges"
 
-#: ui/app.slint:288 ui/process-details-window.slint:83
+#: ui/app.slint:290 ui/process-details-window.slint:83
 msgid "以管理员身份重启"
 msgstr "Restart as administrator"
 
@@ -120,11 +120,11 @@ msgstr "Task Manager Lite"
 msgid "优先级"
 msgstr "Priority"
 
-#: ui/process-page.slint:359
+#: ui/process-page.slint:390
 msgid "低"
 msgstr "Low"
 
-#: ui/process-page.slint:349
+#: ui/process-page.slint:380
 msgid "低于正常"
 msgstr "Below normal"
 
@@ -132,7 +132,7 @@ msgstr "Below normal"
 msgid "例如 notepad、explorer、https://…"
 msgstr "For example notepad, explorer, https://…"
 
-#: ui/settings-page.slint:371
+#: ui/settings-page.slint:409
 msgid "依次为进程、性能、启动项、服务、连接、设置。"
 msgstr "In order: Processes, Performance, Startup apps, Services, Connections, Settings."
 
@@ -152,19 +152,19 @@ msgstr "Select all"
 msgid "公司"
 msgstr "Company"
 
-#: ui/performance-page.slint:391
+#: ui/performance-page.slint:431
 msgid "共享显存"
 msgstr "Shared GPU memory"
 
-#: ui/process-page.slint:576
+#: ui/process-page.slint:607
 msgid "关键"
 msgstr "Critical"
 
-#: ui/process-page.slint:241
+#: ui/process-page.slint:272
 msgid "关键进程"
 msgstr "Critical process"
 
-#: ui/settings-page.slint:274
+#: ui/settings-page.slint:283
 msgid "关键进程为红色，已提权为橙色，系统账户为紫色，承载服务为蓝色。后三种依赖已读到的账户、权限与服务信息：显示对应的“详细信息”列后才有数据。"
 msgstr "Critical processes are red, elevated are orange, system accounts are purple, and service hosts are blue. The last three rely on account, privilege and service information already read: data is only available once the matching Details column is shown."
 
@@ -176,7 +176,7 @@ msgstr "Close"
 msgid "关闭效率模式？"
 msgstr "Turn off efficiency mode?"
 
-#: ui/settings-page.slint:209 ui/settings-page.slint:213
+#: ui/settings-page.slint:218 ui/settings-page.slint:222
 msgid "关闭时最小化到托盘"
 msgstr "Minimize to tray on close"
 
@@ -188,7 +188,7 @@ msgstr "This includes critical processes; ending them may crash the system or si
 msgid "内存"
 msgstr "Memory"
 
-#: ui/app.slint:948
+#: ui/app.slint:951
 msgid "内存 {0}"
 msgstr "Memory {0}"
 
@@ -196,11 +196,11 @@ msgstr "Memory {0}"
 msgid "内存组合"
 msgstr "Memory composition"
 
-#: ui/app.slint:708
+#: ui/app.slint:710
 msgid "分组"
 msgstr "Group"
 
-#: ui/settings-page.slint:370
+#: ui/settings-page.slint:408
 msgid "切换页面"
 msgstr "Switch page"
 
@@ -212,11 +212,11 @@ msgstr "Create"
 msgid "创建完整转储？"
 msgstr "Create a full dump?"
 
-#: ui/settings-page.slint:289
+#: ui/settings-page.slint:298
 msgid "刷新间隔"
 msgstr "Refresh interval"
 
-#: ui/connections-page.slint:41
+#: ui/connections-page.slint:42
 msgid "协议"
 msgstr "Protocol"
 
@@ -224,11 +224,15 @@ msgstr "Protocol"
 msgid "发布者"
 msgstr "Publisher"
 
+#: ui/settings-page.slint:377
+msgid "发布页面"
+msgstr "Releases page"
+
 #: ui/affinity.slint:182 ui/app.slint:162 ui/run-task.slint:164
 msgid "取消"
 msgstr "Cancel"
 
-#: ui/app.slint:290
+#: ui/app.slint:292
 msgid "取消置顶"
 msgstr "Unpin from top"
 
@@ -244,7 +248,7 @@ msgstr "Handle"
 msgid "名称"
 msgstr "Name"
 
-#: ui/settings-page.slint:301 ui/settings-page.slint:304
+#: ui/settings-page.slint:310 ui/settings-page.slint:313
 msgid "后台继续采样"
 msgstr "Keep sampling in the background"
 
@@ -264,11 +268,15 @@ msgstr "Startup apps"
 msgid "启用"
 msgstr "Enable"
 
-#: ui/settings-page.slint:363
+#: ui/settings-page.slint:401
 msgid "在搜索框中按下。"
 msgstr "Press while in the search box."
 
-#: ui/process-page.slint:475
+#: ui/settings-page.slint:378
+msgid "在浏览器中打开 GitHub Releases 页面，查看各版本的更新说明并下载安装包。"
+msgstr "Open the GitHub Releases page in your browser to read release notes and download installers."
+
+#: ui/process-page.slint:506
 msgid "在线搜索进程名"
 msgstr "Search online for process name"
 
@@ -276,19 +284,19 @@ msgstr "Search online for process name"
 msgid "基址"
 msgstr "Base address"
 
-#: ui/process-page.slint:457
+#: ui/process-page.slint:488
 msgid "复制命令行"
 msgstr "Copy command line"
 
-#: ui/process-page.slint:484 ui/settings-page.slint:402
+#: ui/process-page.slint:515 ui/settings-page.slint:440
 msgid "复制所选行"
 msgstr "Copy selected rows"
 
-#: ui/process-page.slint:449
+#: ui/process-page.slint:480
 msgid "复制路径"
 msgstr "Copy path"
 
-#: ui/settings-page.slint:223
+#: ui/settings-page.slint:232
 msgid "外观"
 msgstr "Appearance"
 
@@ -296,19 +304,19 @@ msgstr "Appearance"
 msgid "大小"
 msgstr "Size"
 
-#: ui/settings-page.slint:249
+#: ui/settings-page.slint:258
 msgid "完整窗口始终显示在其他窗口之上。迷你窗口的置顶在它的右键菜单里单独设置。"
 msgstr "The full window stays on top of other windows. Pinning for the mini window is set separately in its context menu."
 
-#: ui/process-page.slint:416
+#: ui/process-page.slint:447
 msgid "完整转储…"
 msgstr "Full dump…"
 
-#: ui/process-page.slint:309
+#: ui/process-page.slint:340
 msgid "实时"
 msgstr "Realtime"
 
-#: ui/process-page.slint:491 ui/process-page.slint:771
+#: ui/process-page.slint:522 ui/process-page.slint:803
 msgid "导出为 CSV…"
 msgstr "Export as CSV…"
 
@@ -316,7 +324,7 @@ msgstr "Export as CSV…"
 msgid "导出包含敏感信息的列？"
 msgstr "Export columns with sensitive information?"
 
-#: ui/performance-page.slint:265
+#: ui/performance-page.slint:274
 msgid "导出当前快照…"
 msgstr "Export current snapshot…"
 
@@ -360,7 +368,7 @@ msgstr "{0} and its {1} descendant processes will be ended. Unsaved data will be
 msgid "展开侧边栏"
 msgstr "Expand sidebar"
 
-#: ui/process-page.slint:465
+#: ui/process-page.slint:496
 msgid "属性"
 msgstr "Properties"
 
@@ -368,7 +376,7 @@ msgstr "Properties"
 msgid "已保存为 {0}。"
 msgstr "Saved as {0}."
 
-#: ui/app.slint:971
+#: ui/app.slint:974
 msgid "已取消以管理员身份重启"
 msgstr "Restart as administrator was cancelled"
 
@@ -376,27 +384,27 @@ msgstr "Restart as administrator was cancelled"
 msgid "已启用"
 msgstr "Enabled"
 
-#: ui/app.slint:974
+#: ui/app.slint:977
 msgid "已复制 {0} 的命令行"
 msgstr "Copied the command line of {0}"
 
-#: ui/app.slint:976
+#: ui/app.slint:979
 msgid "已复制 {0} 的行"
 msgstr "Copied the rows of {0}"
 
-#: ui/app.slint:973
+#: ui/app.slint:976
 msgid "已复制 {0} 的路径"
 msgstr "Copied the path of {0}"
 
-#: ui/app.slint:975
+#: ui/app.slint:978
 msgid "已导出到 {0}"
 msgstr "Exported to {0}"
 
-#: ui/process-page.slint:242
+#: ui/process-page.slint:273
 msgid "已提权"
 msgstr "Elevated"
 
-#: ui/app.slint:955
+#: ui/app.slint:958
 msgid "已暂停刷新"
 msgstr "Refresh paused"
 
@@ -404,27 +412,27 @@ msgstr "Refresh paused"
 msgid "已禁用"
 msgstr "Disabled"
 
-#: ui/app.slint:968
+#: ui/app.slint:971
 msgid "已结束 {0}"
 msgstr "Ended {0}"
 
-#: ui/app.slint:978
+#: ui/app.slint:981
 msgid "已设置亲和性：{0}"
 msgstr "Affinity set: {0}"
 
-#: ui/app.slint:977
+#: ui/app.slint:980
 msgid "已设置优先级：{0}"
 msgstr "Priority set: {0}"
 
-#: ui/process-page.slint:240
+#: ui/process-page.slint:271
 msgid "已退出"
 msgstr "Exited"
 
-#: ui/settings-page.slint:192
+#: ui/settings-page.slint:201
 msgid "常规"
 msgstr "General"
 
-#: ui/app.slint:708
+#: ui/app.slint:710
 msgid "平铺"
 msgstr "Flat"
 
@@ -436,19 +444,23 @@ msgstr "Turn on"
 msgid "开启效率模式？"
 msgstr "Turn on efficiency mode?"
 
-#: ui/settings-page.slint:194 ui/settings-page.slint:200
+#: ui/settings-page.slint:203 ui/settings-page.slint:209
 msgid "开机时启动"
 msgstr "Start at sign-in"
 
-#: ui/settings-page.slint:318
+#: ui/settings-page.slint:327
 msgid "当前未以管理员身份运行，暂用系统 I/O 计数"
 msgstr "Not running as administrator; using system I/O counters for now"
+
+#: ui/settings-page.slint:364
+msgid "当前版本 {}。查询 GitHub 上的最新正式版，只在点击时联网，不会自动下载或安装。"
+msgstr "Current version {}. Looks up the latest stable release on GitHub. Connects only when you click; nothing is downloaded or installed automatically."
 
 #: ui/sidebar.slint:135
 msgid "性能"
 msgstr "Performance"
 
-#: ui/process-page.slint:762
+#: ui/process-page.slint:794
 msgid "恢复默认列"
 msgstr "Restore default columns"
 
@@ -456,19 +468,23 @@ msgstr "Restore default columns"
 msgid "手动"
 msgstr "Manual"
 
-#: ui/settings-page.slint:395
+#: ui/settings-page.slint:381
+msgid "打开 Releases 页面"
+msgstr "Open Releases page"
+
+#: ui/settings-page.slint:433
 msgid "打开“运行新任务”对话框，也可点侧边栏的“运行新任务”。"
 msgstr "Opens the Run new task dialog. You can also click Run new task in the sidebar."
 
-#: ui/app.slint:169 ui/settings-page.slint:440
+#: ui/app.slint:169 ui/settings-page.slint:478
 msgid "打开所在文件夹"
 msgstr "Open containing folder"
 
-#: ui/process-page.slint:441
+#: ui/process-page.slint:472
 msgid "打开文件位置"
 msgstr "Open file location"
 
-#: ui/process-page.slint:244
+#: ui/process-page.slint:275
 msgid "承载服务"
 msgstr "Hosts services"
 
@@ -476,7 +492,7 @@ msgstr "Hosts services"
 msgid "挂起"
 msgstr "Suspend"
 
-#: ui/app.slint:980
+#: ui/app.slint:983
 msgid "挂起 / 恢复：{0}"
 msgstr "Suspend / resume: {0}"
 
@@ -488,11 +504,11 @@ msgstr "Suspend critical processes?"
 msgid "挂起多个进程？"
 msgstr "Suspend multiple processes?"
 
-#: ui/settings-page.slint:336
+#: ui/settings-page.slint:345
 msgid "按 Ctrl+Shift+Esc 或从任务栏菜单打开任务管理器时，改为启动本程序。修改需要管理员授权。"
 msgstr "Start this program instead when Task Manager is opened with Ctrl+Shift+Esc or from the taskbar menu. Changing this requires administrator approval."
 
-#: ui/settings-page.slint:273 ui/settings-page.slint:277
+#: ui/settings-page.slint:282 ui/settings-page.slint:286
 msgid "按类型显示行首色条"
 msgstr "Show a colored bar by process type"
 
@@ -504,43 +520,43 @@ msgstr "Filter by type, e.g. File, Key, Event"
 msgid "描述"
 msgstr "Description"
 
-#: ui/settings-page.slint:354
+#: ui/settings-page.slint:392
 msgid "搜索"
 msgstr "Search"
 
-#: ui/app.slint:283
+#: ui/app.slint:285
 msgid "搜索名称或 PID（Ctrl+F）"
 msgstr "Search name or PID (Ctrl+F)"
 
-#: ui/app.slint:280
+#: ui/app.slint:282
 msgid "搜索名称或发布者（Ctrl+F）"
 msgstr "Search name or publisher (Ctrl+F)"
 
-#: ui/app.slint:284
+#: ui/app.slint:286
 msgid "搜索启动项"
 msgstr "Search startup apps"
 
-#: ui/app.slint:285
+#: ui/app.slint:287
 msgid "搜索服务"
 msgstr "Search services"
 
-#: ui/app.slint:281
+#: ui/app.slint:283
 msgid "搜索服务（Ctrl+F）"
 msgstr "Search services (Ctrl+F)"
 
-#: ui/app.slint:287
+#: ui/app.slint:289
 msgid "搜索进程"
 msgstr "Search processes"
 
-#: ui/app.slint:282
+#: ui/app.slint:284
 msgid "搜索进程、地址或端口（Ctrl+F）"
 msgstr "Search process, address or port (Ctrl+F)"
 
-#: ui/app.slint:286
+#: ui/app.slint:288
 msgid "搜索连接"
 msgstr "Search connections"
 
-#: ui/app.slint:972
+#: ui/app.slint:975
 msgid "操作失败：{0}"
 msgstr "Operation failed: {0}"
 
@@ -548,19 +564,19 @@ msgstr "Operation failed: {0}"
 msgid "收起侧边栏"
 msgstr "Collapse sidebar"
 
-#: ui/app.slint:979
+#: ui/app.slint:982
 msgid "效率模式：{0}"
 msgstr "Efficiency mode: {0}"
 
-#: ui/cpu-detail.slint:76
+#: ui/cpu-detail.slint:79
 msgid "整体利用率"
 msgstr "Overall utilization"
 
-#: ui/settings-page.slint:262
+#: ui/settings-page.slint:271
 msgid "新出现的进程行显示为绿色，刚退出的进程行显示为红色并保留约 1.5 秒后消失。关闭后列表行为与以前相同。"
 msgstr "Newly started processes are shown in green; processes that just exited are shown in red and disappear after about 1.5 seconds. When off, the list behaves as before."
 
-#: ui/process-page.slint:239
+#: ui/process-page.slint:270
 msgid "新启动"
 msgstr "Newly started"
 
@@ -568,15 +584,19 @@ msgstr "Newly started"
 msgid "显示名称"
 msgstr "Display name"
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "暂停"
 msgstr "Pause"
 
-#: ui/settings-page.slint:334 ui/settings-page.slint:341
+#: ui/settings-page.slint:361
+msgid "更新"
+msgstr "Updates"
+
+#: ui/settings-page.slint:343 ui/settings-page.slint:350
 msgid "替换系统任务管理器"
 msgstr "Replace the system Task Manager"
 
-#: ui/process-page.slint:408
+#: ui/process-page.slint:439
 msgid "最小转储…"
 msgstr "Mini dump…"
 
@@ -592,7 +612,7 @@ msgstr "Services"
 msgid "未知"
 msgstr "Unknown"
 
-#: ui/connections-page.slint:42
+#: ui/connections-page.slint:43
 msgid "本地地址"
 msgstr "Local address"
 
@@ -608,19 +628,23 @@ msgstr "{0} processes suspended by this program are still suspended. They will n
 msgid "来源"
 msgstr "Source"
 
-#: ui/app.slint:708
+#: ui/app.slint:710
 msgid "树形"
 msgstr "Tree"
+
+#: ui/settings-page.slint:363 ui/settings-page.slint:368
+msgid "检查更新"
+msgstr "Check for updates"
 
 #: ui/process-details-window.slint:66
 msgid "模块"
 msgstr "Modules"
 
-#: ui/settings-page.slint:317
+#: ui/settings-page.slint:326
 msgid "正在使用 ETW 统计"
 msgstr "Using ETW statistics"
 
-#: ui/app.slint:982
+#: ui/app.slint:985
 msgid "正在创建 {0} 的转储…"
 msgstr "Creating a dump of {0}…"
 
@@ -636,23 +660,27 @@ msgstr "Filtering by process {0}"
 msgid "正在更新…"
 msgstr "Updating…"
 
-#: ui/settings-page.slint:337
+#: ui/settings-page.slint:365
+msgid "正在检查…"
+msgstr "Checking…"
+
+#: ui/settings-page.slint:346
 msgid "正在等待管理员授权…"
 msgstr "Waiting for administrator approval…"
 
-#: ui/process-page.slint:339
+#: ui/process-page.slint:370
 msgid "正常"
 msgstr "Normal"
 
-#: ui/process-page.slint:931
+#: ui/process-page.slint:973
 msgid "没有匹配的进程"
 msgstr "No matching processes"
 
-#: ui/app.slint:969
+#: ui/app.slint:972
 msgid "没有权限结束 {0}，可以以管理员身份重启后再试"
 msgstr "No permission to end {0}. Restart as administrator and try again."
 
-#: ui/settings-page.slint:239
+#: ui/settings-page.slint:248
 msgid "浅色"
 msgstr "Light"
 
@@ -660,11 +688,11 @@ msgstr "Light"
 msgid "浏览…"
 msgstr "Browse…"
 
-#: ui/settings-page.slint:239
+#: ui/settings-page.slint:248
 msgid "深色"
 msgstr "Dark"
 
-#: ui/settings-page.slint:362
+#: ui/settings-page.slint:400
 msgid "清空搜索并回到列表"
 msgstr "Clear the search and return to the list"
 
@@ -672,23 +700,23 @@ msgstr "Clear the search and return to the list"
 msgid "清除过滤"
 msgstr "Clear filter"
 
-#: ui/settings-page.slint:210
+#: ui/settings-page.slint:219
 msgid "点关闭按钮时隐藏到通知区域；单击托盘图标恢复，右键托盘图标退出。"
 msgstr "Clicking the close button hides the window to the notification area. Click the tray icon to restore it, or right-click it to exit."
 
-#: ui/connections-page.slint:44 ui/process-details-window.slint:140 ui/services-page.slint:104
+#: ui/connections-page.slint:45 ui/process-details-window.slint:140 ui/services-page.slint:104
 msgid "状态"
 msgstr "Status"
 
-#: ui/settings-page.slint:315
+#: ui/settings-page.slint:324
 msgid "用 Windows 事件追踪（ETW）统计每个进程实际发生的磁盘读写，同时提供“详细信息”里的进程“网络”列。需要以管理员身份运行，否则磁盘使用系统的 I/O 计数（含网络与设备 I/O），“网络”列显示“—”。"
 msgstr "Uses Event Tracing for Windows (ETW) to count the disk reads and writes each process actually makes, and also feeds the process Network column in Details. Requires running as administrator; otherwise disk uses the system I/O counters (including network and device I/O) and the Network column shows \"—\"."
 
-#: ui/settings-page.slint:196
+#: ui/settings-page.slint:205
 msgid "登录 Windows 后在托盘中启动，不打开窗口。"
 msgstr "Start in the tray after signing in to Windows, without opening a window."
 
-#: ui/settings-page.slint:197
+#: ui/settings-page.slint:206
 msgid "登录 Windows 后最小化启动。"
 msgstr "Start minimized after signing in to Windows."
 
@@ -708,27 +736,27 @@ msgstr "Disk ≈"
 msgid "禁用"
 msgstr "Disable"
 
-#: ui/settings-page.slint:418
+#: ui/settings-page.slint:456
 msgid "移动选择"
 msgstr "Move selection"
 
-#: ui/settings-page.slint:302
+#: ui/settings-page.slint:311
 msgid "窗口最小化或隐藏到托盘时继续采集 CPU、内存等系统指标，曲线不断档；进程列表仍暂停刷新。"
 msgstr "Keeps collecting system metrics such as CPU and memory while the window is minimized or hidden to the tray, so graphs have no gaps. The process list still stops refreshing."
 
-#: ui/app.slint:290 ui/mini-window.slint:75 ui/settings-page.slint:248
+#: ui/app.slint:292 ui/mini-window.slint:75 ui/settings-page.slint:257
 msgid "窗口置顶"
 msgstr "Always on top"
 
-#: ui/app.slint:981
+#: ui/app.slint:984
 msgid "窗口：{0}"
 msgstr "Window: {0}"
 
-#: ui/settings-page.slint:378
+#: ui/settings-page.slint:416
 msgid "立即刷新当前页"
 msgstr "Refresh the current page now"
 
-#: ui/settings-page.slint:228
+#: ui/settings-page.slint:237
 msgid "简体中文"
 msgstr "简体中文"
 
@@ -736,15 +764,15 @@ msgstr "简体中文"
 msgid "类型"
 msgstr "Type"
 
-#: ui/settings-page.slint:313 ui/settings-page.slint:322
+#: ui/settings-page.slint:322 ui/settings-page.slint:331
 msgid "精确统计进程磁盘读写"
 msgstr "Accurate per-process disk I/O"
 
-#: ui/process-page.slint:243
+#: ui/process-page.slint:274
 msgid "系统账户"
 msgstr "System account"
 
-#: ui/settings-page.slint:332
+#: ui/settings-page.slint:341
 msgid "系统集成"
 msgstr "System integration"
 
@@ -768,11 +796,11 @@ msgstr "End"
 msgid "结束关键进程？"
 msgstr "End critical process?"
 
-#: ui/app.slint:732 ui/process-page.slint:289
+#: ui/app.slint:734 ui/process-page.slint:320
 msgid "结束进程"
 msgstr "End process"
 
-#: ui/process-page.slint:297
+#: ui/process-page.slint:328
 msgid "结束进程树"
 msgstr "End process tree"
 
@@ -780,7 +808,7 @@ msgstr "End process tree"
 msgid "结束进程树？"
 msgstr "End process tree?"
 
-#: ui/settings-page.slint:410
+#: ui/settings-page.slint:448
 msgid "结束选中的进程"
 msgstr "End the selected process"
 
@@ -816,15 +844,15 @@ msgstr "Settings"
 msgid "设置亲和性"
 msgstr "Set affinity"
 
-#: ui/process-page.slint:370
+#: ui/process-page.slint:401
 msgid "设置亲和性…"
 msgstr "Set affinity…"
 
-#: ui/process-page.slint:307
+#: ui/process-page.slint:338
 msgid "设置优先级"
 msgstr "Set priority"
 
-#: ui/settings-page.slint:432
+#: ui/settings-page.slint:470
 msgid "设置保存在 {0}"
 msgstr "Settings are saved in {0}"
 
@@ -832,11 +860,11 @@ msgstr "Settings are saved in {0}"
 msgid "访问掩码"
 msgstr "Access mask"
 
-#: ui/process-page.slint:425
+#: ui/process-page.slint:456
 msgid "详细信息…"
 msgstr "Details…"
 
-#: ui/settings-page.slint:225
+#: ui/settings-page.slint:234
 msgid "语言"
 msgstr "Language"
 
@@ -844,15 +872,15 @@ msgstr "Language"
 msgid "起始地址"
 msgstr "Start address"
 
-#: ui/settings-page.slint:228 ui/settings-page.slint:239
+#: ui/settings-page.slint:237 ui/settings-page.slint:248
 msgid "跟随系统"
 msgstr "Follow system"
 
-#: ui/settings-page.slint:226
+#: ui/settings-page.slint:235
 msgid "跟随系统时按 Windows 的显示语言选择，中文系统用简体中文，其他用 English。"
 msgstr "When set to follow system, the Windows display language decides: Chinese systems use Simplified Chinese, everything else uses English."
 
-#: ui/settings-page.slint:237
+#: ui/settings-page.slint:246
 msgid "跟随系统时随 Windows 的深浅色设置自动切换。"
 msgstr "When following the system, switches automatically with the Windows light/dark setting."
 
@@ -864,11 +892,11 @@ msgstr "Path"
 msgid "转储已创建"
 msgstr "Dump created"
 
-#: ui/process-page.slint:431
+#: ui/process-page.slint:462
 msgid "转到服务"
 msgstr "Go to service(s)"
 
-#: ui/connections-page.slint:58 ui/connections-page.slint:96 ui/services-page.slint:132
+#: ui/connections-page.slint:59 ui/connections-page.slint:98 ui/services-page.slint:132
 msgid "转到进程"
 msgstr "Go to process"
 
@@ -876,7 +904,7 @@ msgstr "Go to process"
 msgid "输入程序、文件夹、文档或网址，系统会为你打开它。"
 msgstr "Type the name of a program, folder, document or web address and Windows will open it for you."
 
-#: ui/run-task.slint:65 ui/settings-page.slint:394 ui/sidebar.slint:180
+#: ui/run-task.slint:65 ui/settings-page.slint:432 ui/sidebar.slint:180
 msgid "运行新任务"
 msgstr "Run new task"
 
@@ -888,7 +916,7 @@ msgstr "Run new task (Ctrl+N)"
 msgid "返回完整模式"
 msgstr "Back to full mode"
 
-#: ui/settings-page.slint:387
+#: ui/settings-page.slint:425
 msgid "进入或退出迷你窗口。"
 msgstr "Enter or leave the mini window."
 
@@ -896,23 +924,23 @@ msgstr "Enter or leave the mini window."
 msgid "进程"
 msgstr "Processes"
 
-#: ui/app.slint:934
+#: ui/app.slint:937
 msgid "进程 {0}"
 msgstr "Processes {0}"
 
-#: ui/settings-page.slint:355
+#: ui/settings-page.slint:393
 msgid "进程、启动项、服务、连接页：聚焦搜索框。其他页面跳到进程页的搜索框。"
 msgstr "Processes, Startup apps, Services and Connections pages: focus the search box. Other pages jump to the search box on the Processes page."
 
-#: ui/settings-page.slint:379
+#: ui/settings-page.slint:417
 msgid "进程、性能页立即采样一次；启动项、服务、连接页重新枚举。"
 msgstr "Processes and Performance pages sample once immediately; Startup apps, Services and Connections pages enumerate again."
 
-#: ui/settings-page.slint:259
+#: ui/settings-page.slint:268
 msgid "进程列表"
 msgstr "Process list"
 
-#: ui/connections-page.slint:39
+#: ui/connections-page.slint:40
 msgid "进程名"
 msgstr "Process name"
 
@@ -920,7 +948,7 @@ msgstr "Process name"
 msgid "进程详细信息"
 msgstr "Process details"
 
-#: ui/connections-page.slint:43
+#: ui/connections-page.slint:44
 msgid "远程地址"
 msgstr "Remote address"
 
@@ -928,11 +956,11 @@ msgstr "Remote address"
 msgid "连接"
 msgstr "Connections"
 
-#: ui/settings-page.slint:386
+#: ui/settings-page.slint:424
 msgid "迷你模式"
 msgstr "Mini mode"
 
-#: ui/app.slint:289
+#: ui/app.slint:291
 msgid "迷你模式（Ctrl+M）"
 msgstr "Mini mode (Ctrl+M)"
 
@@ -940,11 +968,11 @@ msgstr "Mini mode (Ctrl+M)"
 msgid "退出"
 msgstr "Exit"
 
-#: ui/cpu-detail.slint:84
+#: ui/cpu-detail.slint:87
 msgid "逻辑处理器"
 msgstr "Logical processors"
 
-#: ui/settings-page.slint:287
+#: ui/settings-page.slint:296
 msgid "采样"
 msgstr "Sampling"
 
@@ -952,19 +980,19 @@ msgstr "Sampling"
 msgid "重启"
 msgstr "Restart"
 
-#: ui/settings-page.slint:352
+#: ui/settings-page.slint:390
 msgid "键盘快捷键"
 msgstr "Keyboard shortcuts"
 
-#: ui/process-page.slint:319
+#: ui/process-page.slint:350
 msgid "高"
 msgstr "High"
 
-#: ui/process-page.slint:329
+#: ui/process-page.slint:360
 msgid "高于正常"
 msgstr "Above normal"
 
-#: ui/settings-page.slint:261 ui/settings-page.slint:264
+#: ui/settings-page.slint:270 ui/settings-page.slint:273
 msgid "高亮新启动和刚退出的进程"
 msgstr "Highlight newly started and just-exited processes"
 

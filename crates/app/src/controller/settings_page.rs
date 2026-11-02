@@ -42,6 +42,14 @@ fn taskmgr_note(status: &Result<Registration, IfeoError>, wanted: bool) -> (Stri
     }
 }
 
+/// 检查更新的状态（#99）。
+#[derive(Default)]
+pub(super) struct UpdateState {
+    busy: std::cell::Cell<bool>,
+    /// “打开 Releases 页面”要打开的地址：发现新版本时为该版本发布页。
+    page: std::cell::RefCell<Option<String>>,
+}
+
 fn exe() -> std::io::Result<std::path::PathBuf> {
     std::env::current_exe()
 }
@@ -143,6 +151,92 @@ impl Controller {
                 c.open_settings_folder();
             }
         });
+        data.set_app_version(env!("CARGO_PKG_VERSION").into());
+        let c = Rc::downgrade(self);
+        data.on_check_update(move || {
+            if let Some(c) = c.upgrade() {
+                c.check_update(false);
+            }
+        });
+        let c = Rc::downgrade(self);
+        data.on_open_releases(move || {
+            if let Some(c) = c.upgrade() {
+                c.open_releases();
+            }
+        });
+    }
+
+    /// 检查更新（#99）：联网放到后台线程，结果回到界面线程显示。`exit_after` 供 `--check-update` 钩子用。
+    pub fn check_update(&self, exit_after: bool) {
+        if self.update.busy.replace(true) {
+            return;
+        }
+        self.settings_data(|d| d.set_update_busy(true));
+        let url = tml_core::update::update_url();
+        let custom = url != tml_core::update::LATEST_RELEASE_API;
+        self.log.borrow_mut().line(format!("检查更新 开始 自定义地址={custom}"));
+        let started = std::time::Instant::now();
+        let spawned = std::thread::Builder::new().name("check-update".into()).spawn(move || {
+            let result = tml_core::update::check_for_update(env!("CARGO_PKG_VERSION"), &url);
+            let elapsed = started.elapsed();
+            let _ = slint::invoke_from_event_loop(move || {
+                let controller = crate::CONTROLLER.with(|c| c.borrow().clone());
+                if let Some(c) = controller {
+                    c.finish_check_update(result, elapsed, exit_after);
+                }
+            });
+        });
+        if let Err(e) = spawned {
+            let error = tml_core::update::UpdateError::Network(e.into());
+            self.finish_check_update(Err(error), started.elapsed(), exit_after);
+        }
+    }
+
+    fn finish_check_update(
+        &self,
+        result: Result<tml_core::update::UpdateStatus, tml_core::update::UpdateError>,
+        elapsed: std::time::Duration,
+        exit_after: bool,
+    ) {
+        use tml_core::update::{RELEASES_PAGE, UpdateStatus, notes_summary};
+        self.update.busy.set(false);
+        // 日志只记结果、版本号与错误码，不记发布说明正文。
+        let line = match &result {
+            Ok(UpdateStatus::UpToDate { latest }) => format!("检查更新 结果=最新 最新版={latest}"),
+            Ok(UpdateStatus::Available(r)) => format!("检查更新 结果=有新版本 最新版={} 发布页={}", r.version, r.url),
+            Err(e) => format!("检查更新 结果=失败 原因={e:?} 错误码={:?}", e.code()),
+        };
+        self.log.borrow_mut().line(format!("{line} 耗时={} ms", elapsed.as_millis()));
+        let (note, error, page) = match &result {
+            Ok(status @ UpdateStatus::Available(r)) => {
+                let summary = notes_summary(&r.notes, 4, 240);
+                (texts::update_status(status, &summary), false, r.url.clone())
+            }
+            Ok(status) => (texts::update_status(status, ""), false, RELEASES_PAGE.to_string()),
+            Err(e) => (texts::update_error(e), true, RELEASES_PAGE.to_string()),
+        };
+        *self.update.page.borrow_mut() = Some(page);
+        self.settings_data(|d| {
+            d.set_update_busy(false);
+            d.set_update_note(note.into());
+            d.set_update_error(error);
+        });
+        if exit_after {
+            let _ = slint::quit_event_loop();
+        }
+    }
+
+    /// 打开最近一次发现的新版本发布页，没有则打开 Releases 列表。
+    fn open_releases(&self) {
+        let page = self.update.page.borrow().clone().unwrap_or_else(|| tml_core::update::RELEASES_PAGE.to_string());
+        let result = tml_core::open_url(&page);
+        self.log.borrow_mut().line(format!("打开发布页 结果={result:?}"));
+        if let Err(e) = result {
+            self.settings_data(|d| {
+                d.set_update_note(texts::shell_error(&e).into());
+                d.set_update_error(true);
+            });
+        }
     }
 
     /// 进入设置页时重新读取以注册表为准的两项（用户可能在系统设置或别的工具里改过）。

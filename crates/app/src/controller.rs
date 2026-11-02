@@ -98,6 +98,8 @@ pub struct Controller {
     suspend: suspend::SuspendState,
     dump: dump::DumpState,
     details: process_details::DetailsState,
+    /// 检查更新（#99）：是否在查询、最近一次发现的新版本发布页。
+    update: settings_page::UpdateState,
     ui: slint::Weak<AppWindow>,
     rows: Rc<VecModel<ProcRow>>,
     resources: Rc<VecModel<Resource>>,
@@ -302,6 +304,7 @@ impl Controller {
         ui.set_page(settings.page);
         ui.set_sidebar_expanded(!settings.sidebar_collapsed);
         ui.set_history_window_index(settings.history_window.index());
+        ui.set_perf_sidebar_width(settings.perf_sidebar_width as f32);
         let cols = ui.global::<Columns>();
         cols.set_pid(settings.columns.pid);
         cols.set_cpu(settings.columns.cpu);
@@ -335,6 +338,7 @@ impl Controller {
             suspend: Default::default(),
             dump: Default::default(),
             details: Default::default(),
+            update: Default::default(),
             ui: ui.as_weak(),
             rows,
             resources,
@@ -667,6 +671,8 @@ impl Controller {
         };
         settings.always_on_top = ui.get_pinned();
         settings.sidebar_collapsed = !ui.get_sidebar_expanded();
+        settings.perf_sidebar_width = (ui.get_perf_sidebar_width().round() as u32)
+            .clamp(crate::settings::PERF_SIDEBAR_MIN, crate::settings::PERF_SIDEBAR_MAX);
         let cols = ui.global::<Columns>();
         settings.columns = ColumnWidths {
             pid: cols.get_pid(),
@@ -1005,6 +1011,9 @@ impl Controller {
             }
             s.first_data = true;
             self.update_tray_tip(&s);
+            if fresh {
+                self.update_header_totals(&s);
+            }
             if fresh || s.mini {
                 if fresh && std::mem::take(&mut s.report_history) {
                     let (points, gaps, step) = s.resources.history(resources::CPU).stats();
@@ -1068,6 +1077,7 @@ impl Controller {
                 self.icon_worker.extract(wanted, self.icon_px.get());
                 // 拿不到路径的进程此时就能用默认图标。
                 self.update_icons(|_, key| touched.contains(&key));
+                self.update_connection_icons();
             }
             icons::Event::Icon { path, px, pixels } => {
                 // 显示缩放变化前发出的请求，尺寸已不对。
@@ -1077,6 +1087,7 @@ impl Controller {
                 let image = pixels.map(Image::from_rgba8);
                 self.state.borrow_mut().icons.loaded(path.as_deref(), image);
                 self.update_icons(|s, key| s.icons.depends_on(key, path.as_deref()));
+                self.update_connection_icons();
             }
         }
     }
@@ -1094,6 +1105,19 @@ impl Controller {
                 self.rows.set_row_data(i, row);
             }
         }
+    }
+
+    /// 进程页表头上行的整机占用（#96）：只用本次采样已有的系统级数据。
+    fn update_header_totals(&self, s: &State) {
+        let Some(ui) = self.ui.upgrade() else { return };
+        use crate::header_totals::{HeaderTotals, text};
+        let t = HeaderTotals::compute(&s.system, &s.disks, &s.networks, &s.gpus);
+        let cols = ui.global::<Columns>();
+        cols.set_total_cpu(text(t.cpu).into());
+        cols.set_total_memory(text(t.memory).into());
+        cols.set_total_disk(text(t.disk).into());
+        cols.set_total_gpu(text(t.gpu).into());
+        cols.set_total_network(text(t.network).into());
     }
 
     /// 迷你图的尺寸与 performance-page.slint 中 ResourceCard 的布局一致。

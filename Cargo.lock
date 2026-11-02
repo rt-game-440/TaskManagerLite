@@ -4216,6 +4216,7 @@ dependencies = [
 name = "tml-core"
 version = "0.3.0"
 dependencies = [
+ "serde_json",
  "windows",
 ]
 

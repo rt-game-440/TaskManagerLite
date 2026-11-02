@@ -234,12 +234,21 @@ export component PerformancePage inherits Rectangle {
     // CPU 页切换到“逻辑处理器”视图时，整体曲线被网格盖住。
     property <bool> core-grid: root.data.kind == ResourceKind.cpu && CpuData.per-core;
 
+    // 左栏宽度（#97）：拖动左栏与详情之间的分隔条调整，双击恢复默认；由 Rust 读写设置。
+    // 实际宽度再按页面宽度收紧，保证详情区至少留 420px（窗口最窄时退到最小宽度 180px）。
+    in-out property <length> sidebar-width: 240px;
+    property <length> sidebar-min: 180px;
+    property <length> sidebar-max: max(root.sidebar-min, min(480px, root.width - 24px - 12px - 420px));
+    out property <length> sidebar-actual: max(root.sidebar-min, min(root.sidebar-max, root.sidebar-width));
+    property <length> drag-from;
+    property <length> drag-width;
+
     HorizontalLayout {
         padding: 12px;
-        spacing: 12px;
+        spacing: 0px;
 
         VerticalLayout {
-            width: 240px;
+            width: root.sidebar-actual;
             spacing: 8px;
             ScrollView {
             vertical-stretch: 1;
@@ -265,6 +274,37 @@ export component PerformancePage inherits Rectangle {
                 text: @tr("导出当前快照…");
                 clicked => {
                     root.export-snapshot();
+                }
+            }
+        }
+
+        // 分隔条：占原来 12px 的间距，悬停或拖动时显示一条强调色竖线。
+        Rectangle {
+            width: 12px;
+            Rectangle {
+                x: (parent.width - self.width) / 2;
+                y: 8px;
+                width: 2px;
+                height: parent.height - 16px;
+                border-radius: 1px;
+                background: splitter.pressed ? Palette.accent-background : splitter.has-hover ? Theme.divider : transparent;
+            }
+
+            splitter := TouchArea {
+                mouse-cursor: col-resize;
+                pointer-event(e) => {
+                    if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
+                        root.drag-from = self.absolute-position.x + self.mouse-x;
+                        root.drag-width = root.sidebar-actual;
+                    }
+                }
+                moved => {
+                    if self.pressed {
+                        root.sidebar-width = max(root.sidebar-min, min(root.sidebar-max, root.drag-width + (self.absolute-position.x + self.mouse-x) - root.drag-from));
+                    }
+                }
+                double-clicked => {
+                    root.sidebar-width = 240px;
                 }
             }
         }

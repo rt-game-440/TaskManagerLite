@@ -4,31 +4,31 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "0.5 秒"
 msgstr ""
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "1 小时"
 msgstr ""
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "1 秒"
 msgstr ""
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "10 分钟"
 msgstr ""
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "2 秒"
 msgstr ""
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "5 分钟"
 msgstr ""
 
-#: ui/performance-page.slint:112 ui/performance-page.slint:361
+#: ui/performance-page.slint:112 ui/performance-page.slint:401
 msgid "60 秒"
 msgstr ""
 
@@ -36,7 +36,7 @@ msgstr ""
 msgid "CPU"
 msgstr ""
 
-#: ui/app.slint:941
+#: ui/app.slint:944
 msgid "CPU {0}"
 msgstr ""
 
@@ -48,7 +48,7 @@ msgstr ""
 msgid "CPU 时间"
 msgstr ""
 
-#: ui/settings-page.slint:319
+#: ui/settings-page.slint:328
 msgid "ETW 会话未能启动，暂用系统 I/O 计数"
 msgstr ""
 
@@ -56,7 +56,7 @@ msgstr ""
 msgid "PID"
 msgstr ""
 
-#: ui/app.slint:970
+#: ui/app.slint:973
 msgid "{0} 已经退出"
 msgstr ""
 
@@ -76,23 +76,23 @@ msgstr ""
 msgid "不透明度"
 msgstr ""
 
-#: ui/settings-page.slint:290
+#: ui/settings-page.slint:299
 msgid "与顶栏的刷新间隔相同。暂停后数据与曲线都停止更新。"
 msgstr ""
 
-#: ui/performance-page.slint:391
+#: ui/performance-page.slint:431
 msgid "专用显存"
 msgstr ""
 
-#: ui/settings-page.slint:236
+#: ui/settings-page.slint:245
 msgid "主题"
 msgstr ""
 
-#: ui/settings-page.slint:411 ui/settings-page.slint:419
+#: ui/settings-page.slint:449 ui/settings-page.slint:457
 msgid "仅进程页。"
 msgstr ""
 
-#: ui/settings-page.slint:403
+#: ui/settings-page.slint:441
 msgid "仅进程页，复制为制表符分隔的文字；搜索框里按下则复制所选文字。"
 msgstr ""
 
@@ -108,7 +108,7 @@ msgstr ""
 msgid "以管理员权限创建此任务"
 msgstr ""
 
-#: ui/app.slint:288 ui/process-details-window.slint:83
+#: ui/app.slint:290 ui/process-details-window.slint:83
 msgid "以管理员身份重启"
 msgstr ""
 
@@ -120,11 +120,11 @@ msgstr ""
 msgid "优先级"
 msgstr ""
 
-#: ui/process-page.slint:359
+#: ui/process-page.slint:390
 msgid "低"
 msgstr ""
 
-#: ui/process-page.slint:349
+#: ui/process-page.slint:380
 msgid "低于正常"
 msgstr ""
 
@@ -132,7 +132,7 @@ msgstr ""
 msgid "例如 notepad、explorer、https://…"
 msgstr ""
 
-#: ui/settings-page.slint:371
+#: ui/settings-page.slint:409
 msgid "依次为进程、性能、启动项、服务、连接、设置。"
 msgstr ""
 
@@ -152,19 +152,19 @@ msgstr ""
 msgid "公司"
 msgstr ""
 
-#: ui/performance-page.slint:391
+#: ui/performance-page.slint:431
 msgid "共享显存"
 msgstr ""
 
-#: ui/process-page.slint:576
+#: ui/process-page.slint:607
 msgid "关键"
 msgstr ""
 
-#: ui/process-page.slint:241
+#: ui/process-page.slint:272
 msgid "关键进程"
 msgstr ""
 
-#: ui/settings-page.slint:274
+#: ui/settings-page.slint:283
 msgid "关键进程为红色，已提权为橙色，系统账户为紫色，承载服务为蓝色。后三种依赖已读到的账户、权限与服务信息：显示对应的“详细信息”列后才有数据。"
 msgstr ""
 
@@ -176,7 +176,7 @@ msgstr ""
 msgid "关闭效率模式？"
 msgstr ""
 
-#: ui/settings-page.slint:209 ui/settings-page.slint:213
+#: ui/settings-page.slint:218 ui/settings-page.slint:222
 msgid "关闭时最小化到托盘"
 msgstr ""
 
@@ -188,7 +188,7 @@ msgstr ""
 msgid "内存"
 msgstr ""
 
-#: ui/app.slint:948
+#: ui/app.slint:951
 msgid "内存 {0}"
 msgstr ""
 
@@ -196,11 +196,11 @@ msgstr ""
 msgid "内存组合"
 msgstr ""
 
-#: ui/app.slint:708
+#: ui/app.slint:710
 msgid "分组"
 msgstr ""
 
-#: ui/settings-page.slint:370
+#: ui/settings-page.slint:408
 msgid "切换页面"
 msgstr ""
 
@@ -212,11 +212,11 @@ msgstr ""
 msgid "创建完整转储？"
 msgstr ""
 
-#: ui/settings-page.slint:289
+#: ui/settings-page.slint:298
 msgid "刷新间隔"
 msgstr ""
 
-#: ui/connections-page.slint:41
+#: ui/connections-page.slint:42
 msgid "协议"
 msgstr ""
 
@@ -224,11 +224,15 @@ msgstr ""
 msgid "发布者"
 msgstr ""
 
+#: ui/settings-page.slint:377
+msgid "发布页面"
+msgstr ""
+
 #: ui/affinity.slint:182 ui/app.slint:162 ui/run-task.slint:164
 msgid "取消"
 msgstr ""
 
-#: ui/app.slint:290
+#: ui/app.slint:292
 msgid "取消置顶"
 msgstr ""
 
@@ -244,7 +248,7 @@ msgstr ""
 msgid "名称"
 msgstr ""
 
-#: ui/settings-page.slint:301 ui/settings-page.slint:304
+#: ui/settings-page.slint:310 ui/settings-page.slint:313
 msgid "后台继续采样"
 msgstr ""
 
@@ -264,11 +268,15 @@ msgstr ""
 msgid "启用"
 msgstr ""
 
-#: ui/settings-page.slint:363
+#: ui/settings-page.slint:401
 msgid "在搜索框中按下。"
 msgstr ""
 
-#: ui/process-page.slint:475
+#: ui/settings-page.slint:378
+msgid "在浏览器中打开 GitHub Releases 页面，查看各版本的更新说明并下载安装包。"
+msgstr ""
+
+#: ui/process-page.slint:506
 msgid "在线搜索进程名"
 msgstr ""
 
@@ -276,19 +284,19 @@ msgstr ""
 msgid "基址"
 msgstr ""
 
-#: ui/process-page.slint:457
+#: ui/process-page.slint:488
 msgid "复制命令行"
 msgstr ""
 
-#: ui/process-page.slint:484 ui/settings-page.slint:402
+#: ui/process-page.slint:515 ui/settings-page.slint:440
 msgid "复制所选行"
 msgstr ""
 
-#: ui/process-page.slint:449
+#: ui/process-page.slint:480
 msgid "复制路径"
 msgstr ""
 
-#: ui/settings-page.slint:223
+#: ui/settings-page.slint:232
 msgid "外观"
 msgstr ""
 
@@ -296,19 +304,19 @@ msgstr ""
 msgid "大小"
 msgstr ""
 
-#: ui/settings-page.slint:249
+#: ui/settings-page.slint:258
 msgid "完整窗口始终显示在其他窗口之上。迷你窗口的置顶在它的右键菜单里单独设置。"
 msgstr ""
 
-#: ui/process-page.slint:416
+#: ui/process-page.slint:447
 msgid "完整转储…"
 msgstr ""
 
-#: ui/process-page.slint:309
+#: ui/process-page.slint:340
 msgid "实时"
 msgstr ""
 
-#: ui/process-page.slint:491 ui/process-page.slint:771
+#: ui/process-page.slint:522 ui/process-page.slint:803
 msgid "导出为 CSV…"
 msgstr ""
 
@@ -316,7 +324,7 @@ msgstr ""
 msgid "导出包含敏感信息的列？"
 msgstr ""
 
-#: ui/performance-page.slint:265
+#: ui/performance-page.slint:274
 msgid "导出当前快照…"
 msgstr ""
 
@@ -360,7 +368,7 @@ msgstr ""
 msgid "展开侧边栏"
 msgstr ""
 
-#: ui/process-page.slint:465
+#: ui/process-page.slint:496
 msgid "属性"
 msgstr ""
 
@@ -368,7 +376,7 @@ msgstr ""
 msgid "已保存为 {0}。"
 msgstr ""
 
-#: ui/app.slint:971
+#: ui/app.slint:974
 msgid "已取消以管理员身份重启"
 msgstr ""
 
@@ -376,27 +384,27 @@ msgstr ""
 msgid "已启用"
 msgstr ""
 
-#: ui/app.slint:974
+#: ui/app.slint:977
 msgid "已复制 {0} 的命令行"
 msgstr ""
 
-#: ui/app.slint:976
+#: ui/app.slint:979
 msgid "已复制 {0} 的行"
 msgstr ""
 
-#: ui/app.slint:973
+#: ui/app.slint:976
 msgid "已复制 {0} 的路径"
 msgstr ""
 
-#: ui/app.slint:975
+#: ui/app.slint:978
 msgid "已导出到 {0}"
 msgstr ""
 
-#: ui/process-page.slint:242
+#: ui/process-page.slint:273
 msgid "已提权"
 msgstr ""
 
-#: ui/app.slint:955
+#: ui/app.slint:958
 msgid "已暂停刷新"
 msgstr ""
 
@@ -404,27 +412,27 @@ msgstr ""
 msgid "已禁用"
 msgstr ""
 
-#: ui/app.slint:968
+#: ui/app.slint:971
 msgid "已结束 {0}"
 msgstr ""
 
-#: ui/app.slint:978
+#: ui/app.slint:981
 msgid "已设置亲和性：{0}"
 msgstr ""
 
-#: ui/app.slint:977
+#: ui/app.slint:980
 msgid "已设置优先级：{0}"
 msgstr ""
 
-#: ui/process-page.slint:240
+#: ui/process-page.slint:271
 msgid "已退出"
 msgstr ""
 
-#: ui/settings-page.slint:192
+#: ui/settings-page.slint:201
 msgid "常规"
 msgstr ""
 
-#: ui/app.slint:708
+#: ui/app.slint:710
 msgid "平铺"
 msgstr ""
 
@@ -436,19 +444,23 @@ msgstr ""
 msgid "开启效率模式？"
 msgstr ""
 
-#: ui/settings-page.slint:194 ui/settings-page.slint:200
+#: ui/settings-page.slint:203 ui/settings-page.slint:209
 msgid "开机时启动"
 msgstr ""
 
-#: ui/settings-page.slint:318
+#: ui/settings-page.slint:327
 msgid "当前未以管理员身份运行，暂用系统 I/O 计数"
+msgstr ""
+
+#: ui/settings-page.slint:364
+msgid "当前版本 {}。查询 GitHub 上的最新正式版，只在点击时联网，不会自动下载或安装。"
 msgstr ""
 
 #: ui/sidebar.slint:135
 msgid "性能"
 msgstr ""
 
-#: ui/process-page.slint:762
+#: ui/process-page.slint:794
 msgid "恢复默认列"
 msgstr ""
 
@@ -456,19 +468,23 @@ msgstr ""
 msgid "手动"
 msgstr ""
 
-#: ui/settings-page.slint:395
+#: ui/settings-page.slint:381
+msgid "打开 Releases 页面"
+msgstr ""
+
+#: ui/settings-page.slint:433
 msgid "打开“运行新任务”对话框，也可点侧边栏的“运行新任务”。"
 msgstr ""
 
-#: ui/app.slint:169 ui/settings-page.slint:440
+#: ui/app.slint:169 ui/settings-page.slint:478
 msgid "打开所在文件夹"
 msgstr ""
 
-#: ui/process-page.slint:441
+#: ui/process-page.slint:472
 msgid "打开文件位置"
 msgstr ""
 
-#: ui/process-page.slint:244
+#: ui/process-page.slint:275
 msgid "承载服务"
 msgstr ""
 
@@ -476,7 +492,7 @@ msgstr ""
 msgid "挂起"
 msgstr ""
 
-#: ui/app.slint:980
+#: ui/app.slint:983
 msgid "挂起 / 恢复：{0}"
 msgstr ""
 
@@ -488,11 +504,11 @@ msgstr ""
 msgid "挂起多个进程？"
 msgstr ""
 
-#: ui/settings-page.slint:336
+#: ui/settings-page.slint:345
 msgid "按 Ctrl+Shift+Esc 或从任务栏菜单打开任务管理器时，改为启动本程序。修改需要管理员授权。"
 msgstr ""
 
-#: ui/settings-page.slint:273 ui/settings-page.slint:277
+#: ui/settings-page.slint:282 ui/settings-page.slint:286
 msgid "按类型显示行首色条"
 msgstr ""
 
@@ -504,43 +520,43 @@ msgstr ""
 msgid "描述"
 msgstr ""
 
-#: ui/settings-page.slint:354
+#: ui/settings-page.slint:392
 msgid "搜索"
 msgstr ""
 
-#: ui/app.slint:283
+#: ui/app.slint:285
 msgid "搜索名称或 PID（Ctrl+F）"
 msgstr ""
 
-#: ui/app.slint:280
+#: ui/app.slint:282
 msgid "搜索名称或发布者（Ctrl+F）"
 msgstr ""
 
-#: ui/app.slint:284
+#: ui/app.slint:286
 msgid "搜索启动项"
 msgstr ""
 
-#: ui/app.slint:285
+#: ui/app.slint:287
 msgid "搜索服务"
 msgstr ""
 
-#: ui/app.slint:281
+#: ui/app.slint:283
 msgid "搜索服务（Ctrl+F）"
 msgstr ""
 
-#: ui/app.slint:287
+#: ui/app.slint:289
 msgid "搜索进程"
 msgstr ""
 
-#: ui/app.slint:282
+#: ui/app.slint:284
 msgid "搜索进程、地址或端口（Ctrl+F）"
 msgstr ""
 
-#: ui/app.slint:286
+#: ui/app.slint:288
 msgid "搜索连接"
 msgstr ""
 
-#: ui/app.slint:972
+#: ui/app.slint:975
 msgid "操作失败：{0}"
 msgstr ""
 
@@ -548,19 +564,19 @@ msgstr ""
 msgid "收起侧边栏"
 msgstr ""
 
-#: ui/app.slint:979
+#: ui/app.slint:982
 msgid "效率模式：{0}"
 msgstr ""
 
-#: ui/cpu-detail.slint:76
+#: ui/cpu-detail.slint:79
 msgid "整体利用率"
 msgstr ""
 
-#: ui/settings-page.slint:262
+#: ui/settings-page.slint:271
 msgid "新出现的进程行显示为绿色，刚退出的进程行显示为红色并保留约 1.5 秒后消失。关闭后列表行为与以前相同。"
 msgstr ""
 
-#: ui/process-page.slint:239
+#: ui/process-page.slint:270
 msgid "新启动"
 msgstr ""
 
@@ -568,15 +584,19 @@ msgstr ""
 msgid "显示名称"
 msgstr ""
 
-#: ui/app.slint:721 ui/settings-page.slint:292
+#: ui/app.slint:723 ui/settings-page.slint:301
 msgid "暂停"
 msgstr ""
 
-#: ui/settings-page.slint:334 ui/settings-page.slint:341
+#: ui/settings-page.slint:361
+msgid "更新"
+msgstr ""
+
+#: ui/settings-page.slint:343 ui/settings-page.slint:350
 msgid "替换系统任务管理器"
 msgstr ""
 
-#: ui/process-page.slint:408
+#: ui/process-page.slint:439
 msgid "最小转储…"
 msgstr ""
 
@@ -592,7 +612,7 @@ msgstr ""
 msgid "未知"
 msgstr ""
 
-#: ui/connections-page.slint:42
+#: ui/connections-page.slint:43
 msgid "本地地址"
 msgstr ""
 
@@ -608,19 +628,23 @@ msgstr ""
 msgid "来源"
 msgstr ""
 
-#: ui/app.slint:708
+#: ui/app.slint:710
 msgid "树形"
+msgstr ""
+
+#: ui/settings-page.slint:363 ui/settings-page.slint:368
+msgid "检查更新"
 msgstr ""
 
 #: ui/process-details-window.slint:66
 msgid "模块"
 msgstr ""
 
-#: ui/settings-page.slint:317
+#: ui/settings-page.slint:326
 msgid "正在使用 ETW 统计"
 msgstr ""
 
-#: ui/app.slint:982
+#: ui/app.slint:985
 msgid "正在创建 {0} 的转储…"
 msgstr ""
 
@@ -636,23 +660,27 @@ msgstr ""
 msgid "正在更新…"
 msgstr ""
 
-#: ui/settings-page.slint:337
+#: ui/settings-page.slint:365
+msgid "正在检查…"
+msgstr ""
+
+#: ui/settings-page.slint:346
 msgid "正在等待管理员授权…"
 msgstr ""
 
-#: ui/process-page.slint:339
+#: ui/process-page.slint:370
 msgid "正常"
 msgstr ""
 
-#: ui/process-page.slint:931
+#: ui/process-page.slint:973
 msgid "没有匹配的进程"
 msgstr ""
 
-#: ui/app.slint:969
+#: ui/app.slint:972
 msgid "没有权限结束 {0}，可以以管理员身份重启后再试"
 msgstr ""
 
-#: ui/settings-page.slint:239
+#: ui/settings-page.slint:248
 msgid "浅色"
 msgstr ""
 
@@ -660,11 +688,11 @@ msgstr ""
 msgid "浏览…"
 msgstr ""
 
-#: ui/settings-page.slint:239
+#: ui/settings-page.slint:248
 msgid "深色"
 msgstr ""
 
-#: ui/settings-page.slint:362
+#: ui/settings-page.slint:400
 msgid "清空搜索并回到列表"
 msgstr ""
 
@@ -672,23 +700,23 @@ msgstr ""
 msgid "清除过滤"
 msgstr ""
 
-#: ui/settings-page.slint:210
+#: ui/settings-page.slint:219
 msgid "点关闭按钮时隐藏到通知区域；单击托盘图标恢复，右键托盘图标退出。"
 msgstr ""
 
-#: ui/connections-page.slint:44 ui/process-details-window.slint:140 ui/services-page.slint:104
+#: ui/connections-page.slint:45 ui/process-details-window.slint:140 ui/services-page.slint:104
 msgid "状态"
 msgstr ""
 
-#: ui/settings-page.slint:315
+#: ui/settings-page.slint:324
 msgid "用 Windows 事件追踪（ETW）统计每个进程实际发生的磁盘读写，同时提供“详细信息”里的进程“网络”列。需要以管理员身份运行，否则磁盘使用系统的 I/O 计数（含网络与设备 I/O），“网络”列显示“—”。"
 msgstr ""
 
-#: ui/settings-page.slint:196
+#: ui/settings-page.slint:205
 msgid "登录 Windows 后在托盘中启动，不打开窗口。"
 msgstr ""
 
-#: ui/settings-page.slint:197
+#: ui/settings-page.slint:206
 msgid "登录 Windows 后最小化启动。"
 msgstr ""
 
@@ -708,27 +736,27 @@ msgstr ""
 msgid "禁用"
 msgstr ""
 
-#: ui/settings-page.slint:418
+#: ui/settings-page.slint:456
 msgid "移动选择"
 msgstr ""
 
-#: ui/settings-page.slint:302
+#: ui/settings-page.slint:311
 msgid "窗口最小化或隐藏到托盘时继续采集 CPU、内存等系统指标，曲线不断档；进程列表仍暂停刷新。"
 msgstr ""
 
-#: ui/app.slint:290 ui/mini-window.slint:75 ui/settings-page.slint:248
+#: ui/app.slint:292 ui/mini-window.slint:75 ui/settings-page.slint:257
 msgid "窗口置顶"
 msgstr ""
 
-#: ui/app.slint:981
+#: ui/app.slint:984
 msgid "窗口：{0}"
 msgstr ""
 
-#: ui/settings-page.slint:378
+#: ui/settings-page.slint:416
 msgid "立即刷新当前页"
 msgstr ""
 
-#: ui/settings-page.slint:228
+#: ui/settings-page.slint:237
 msgid "简体中文"
 msgstr ""
 
@@ -736,15 +764,15 @@ msgstr ""
 msgid "类型"
 msgstr ""
 
-#: ui/settings-page.slint:313 ui/settings-page.slint:322
+#: ui/settings-page.slint:322 ui/settings-page.slint:331
 msgid "精确统计进程磁盘读写"
 msgstr ""
 
-#: ui/process-page.slint:243
+#: ui/process-page.slint:274
 msgid "系统账户"
 msgstr ""
 
-#: ui/settings-page.slint:332
+#: ui/settings-page.slint:341
 msgid "系统集成"
 msgstr ""
 
@@ -768,11 +796,11 @@ msgstr ""
 msgid "结束关键进程？"
 msgstr ""
 
-#: ui/app.slint:732 ui/process-page.slint:289
+#: ui/app.slint:734 ui/process-page.slint:320
 msgid "结束进程"
 msgstr ""
 
-#: ui/process-page.slint:297
+#: ui/process-page.slint:328
 msgid "结束进程树"
 msgstr ""
 
@@ -780,7 +808,7 @@ msgstr ""
 msgid "结束进程树？"
 msgstr ""
 
-#: ui/settings-page.slint:410
+#: ui/settings-page.slint:448
 msgid "结束选中的进程"
 msgstr ""
 
@@ -816,15 +844,15 @@ msgstr ""
 msgid "设置亲和性"
 msgstr ""
 
-#: ui/process-page.slint:370
+#: ui/process-page.slint:401
 msgid "设置亲和性…"
 msgstr ""
 
-#: ui/process-page.slint:307
+#: ui/process-page.slint:338
 msgid "设置优先级"
 msgstr ""
 
-#: ui/settings-page.slint:432
+#: ui/settings-page.slint:470
 msgid "设置保存在 {0}"
 msgstr ""
 
@@ -832,11 +860,11 @@ msgstr ""
 msgid "访问掩码"
 msgstr ""
 
-#: ui/process-page.slint:425
+#: ui/process-page.slint:456
 msgid "详细信息…"
 msgstr ""
 
-#: ui/settings-page.slint:225
+#: ui/settings-page.slint:234
 msgid "语言"
 msgstr ""
 
@@ -844,15 +872,15 @@ msgstr ""
 msgid "起始地址"
 msgstr ""
 
-#: ui/settings-page.slint:228 ui/settings-page.slint:239
+#: ui/settings-page.slint:237 ui/settings-page.slint:248
 msgid "跟随系统"
 msgstr ""
 
-#: ui/settings-page.slint:226
+#: ui/settings-page.slint:235
 msgid "跟随系统时按 Windows 的显示语言选择，中文系统用简体中文，其他用 English。"
 msgstr ""
 
-#: ui/settings-page.slint:237
+#: ui/settings-page.slint:246
 msgid "跟随系统时随 Windows 的深浅色设置自动切换。"
 msgstr ""
 
@@ -864,11 +892,11 @@ msgstr ""
 msgid "转储已创建"
 msgstr ""
 
-#: ui/process-page.slint:431
+#: ui/process-page.slint:462
 msgid "转到服务"
 msgstr ""
 
-#: ui/connections-page.slint:58 ui/connections-page.slint:96 ui/services-page.slint:132
+#: ui/connections-page.slint:59 ui/connections-page.slint:98 ui/services-page.slint:132
 msgid "转到进程"
 msgstr ""
 
@@ -876,7 +904,7 @@ msgstr ""
 msgid "输入程序、文件夹、文档或网址，系统会为你打开它。"
 msgstr ""
 
-#: ui/run-task.slint:65 ui/settings-page.slint:394 ui/sidebar.slint:180
+#: ui/run-task.slint:65 ui/settings-page.slint:432 ui/sidebar.slint:180
 msgid "运行新任务"
 msgstr ""
 
@@ -888,7 +916,7 @@ msgstr ""
 msgid "返回完整模式"
 msgstr ""
 
-#: ui/settings-page.slint:387
+#: ui/settings-page.slint:425
 msgid "进入或退出迷你窗口。"
 msgstr ""
 
@@ -896,23 +924,23 @@ msgstr ""
 msgid "进程"
 msgstr ""
 
-#: ui/app.slint:934
+#: ui/app.slint:937
 msgid "进程 {0}"
 msgstr ""
 
-#: ui/settings-page.slint:355
+#: ui/settings-page.slint:393
 msgid "进程、启动项、服务、连接页：聚焦搜索框。其他页面跳到进程页的搜索框。"
 msgstr ""
 
-#: ui/settings-page.slint:379
+#: ui/settings-page.slint:417
 msgid "进程、性能页立即采样一次；启动项、服务、连接页重新枚举。"
 msgstr ""
 
-#: ui/settings-page.slint:259
+#: ui/settings-page.slint:268
 msgid "进程列表"
 msgstr ""
 
-#: ui/connections-page.slint:39
+#: ui/connections-page.slint:40
 msgid "进程名"
 msgstr ""
 
@@ -920,7 +948,7 @@ msgstr ""
 msgid "进程详细信息"
 msgstr ""
 
-#: ui/connections-page.slint:43
+#: ui/connections-page.slint:44
 msgid "远程地址"
 msgstr ""
 
@@ -928,11 +956,11 @@ msgstr ""
 msgid "连接"
 msgstr ""
 
-#: ui/settings-page.slint:386
+#: ui/settings-page.slint:424
 msgid "迷你模式"
 msgstr ""
 
-#: ui/app.slint:289
+#: ui/app.slint:291
 msgid "迷你模式（Ctrl+M）"
 msgstr ""
 
@@ -940,11 +968,11 @@ msgstr ""
 msgid "退出"
 msgstr ""
 
-#: ui/cpu-detail.slint:84
+#: ui/cpu-detail.slint:87
 msgid "逻辑处理器"
 msgstr ""
 
-#: ui/settings-page.slint:287
+#: ui/settings-page.slint:296
 msgid "采样"
 msgstr ""
 
@@ -952,19 +980,19 @@ msgstr ""
 msgid "重启"
 msgstr ""
 
-#: ui/settings-page.slint:352
+#: ui/settings-page.slint:390
 msgid "键盘快捷键"
 msgstr ""
 
-#: ui/process-page.slint:319
+#: ui/process-page.slint:350
 msgid "高"
 msgstr ""
 
-#: ui/process-page.slint:329
+#: ui/process-page.slint:360
 msgid "高于正常"
 msgstr ""
 
-#: ui/settings-page.slint:261 ui/settings-page.slint:264
+#: ui/settings-page.slint:270 ui/settings-page.slint:273
 msgid "高亮新启动和刚退出的进程"
 msgstr ""
 

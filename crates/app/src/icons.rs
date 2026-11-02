@@ -121,6 +121,15 @@ impl<V> IconCache<V> {
         }
     }
 
+    /// 其他页面（连接页，#98）按 PID 查到的进程图标：`key` 为 `None`（PID 0、快照里没有）
+    /// 或缓存不认识该进程时用默认图标；已在跟踪但还在解析 / 提取中时为 `None`（显示空白）。
+    pub fn icon_or_default(&self, key: Option<ProcessKey>) -> Option<&V> {
+        match key {
+            Some(k) if self.procs.contains_key(&k) => self.icon(k),
+            _ => self.default.as_ref(),
+        }
+    }
+
     /// 进程的图标是否取决于 `path`（`None` 表示默认图标）：用于图标到达后确定要刷新的行。
     pub fn depends_on(&self, key: ProcessKey, path: Option<&Path>) -> bool {
         match (self.procs.get(&key), path) {
@@ -294,6 +303,22 @@ mod tests {
         assert_eq!(c.icon(key(4)), Some(&"default"));
         assert_eq!(c.icon(key(5)), Some(&"default"), "提取失败回退默认图标");
         assert_eq!(c.icon(key(6)), Some(&"ok"));
+    }
+
+    #[test]
+    fn icon_or_default_uses_default_for_unknown_processes() {
+        let mut c = IconCache::<&str>::default();
+        c.track([key(1), key(2)]);
+        c.resolved(key(1), p(r"C:\a.exe"));
+        c.loaded(None, Some("default"));
+        // 没有对应进程（PID 0、快照里没有）或缓存不认识：默认图标。
+        assert_eq!(c.icon_or_default(None), Some(&"default"));
+        assert_eq!(c.icon_or_default(Some(key(9))), Some(&"default"));
+        // 已跟踪但图标还在路上：空白，不闪默认图标。
+        assert_eq!(c.icon_or_default(Some(key(1))), None);
+        assert_eq!(c.icon_or_default(Some(key(2))), None);
+        c.loaded(p(r"C:\a.exe").as_deref(), Some("a"));
+        assert_eq!(c.icon_or_default(Some(key(1))), Some(&"a"));
     }
 
     #[test]

@@ -120,7 +120,12 @@ pub fn search_url(process_name: &str) -> String {
 
 /// 用默认浏览器搜索进程名。
 pub fn search_online(process_name: &str) -> Result<(), ShellError> {
-    let url = wide(OsStr::new(&search_url(process_name)));
+    open_url(&search_url(process_name))
+}
+
+/// 用默认浏览器打开网址（调用方保证是可信的 https 地址）。
+pub fn open_url(url: &str) -> Result<(), ShellError> {
+    let url = wide(OsStr::new(url));
     let r = unsafe { ShellExecuteW(None, w!("open"), PCWSTR(url.as_ptr()), PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL) };
     // 返回值大于 32 表示成功。
     let code = r.0 as isize;

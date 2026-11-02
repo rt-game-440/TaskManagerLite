@@ -16,6 +16,13 @@ export global Columns {
     out property <string> title-cpu: @tr("CPU");
     out property <string> title-memory: @tr("内存");
     out property <string> title-disk: self.disk-accurate ? @tr("磁盘") : @tr("磁盘 ≈");
+    // 表头上行的整机占用（#96，由 Rust 每次完整采样更新；口径见 GLOSSARY.md“表头总占用”）。
+    // 只写进表头，不进 CSV 导出的列标题。
+    in-out property <string> total-cpu;
+    in-out property <string> total-memory;
+    in-out property <string> total-disk;
+    in-out property <string> total-gpu;
+    in-out property <string> total-network;
     out property <length> default-pid: 76px;
     out property <length> default-cpu: 76px;
     out property <length> default-memory: 108px;
@@ -113,6 +120,9 @@ export component HeaderCell inherits Rectangle {
     in property <bool> descending;
     in property <TextHorizontalAlignment> align: right;
     in property <bool> resizable: true;
+    // 进程页的两行表头（#96）：`total` 为该列的整机占用（如“37%”），空串表示该列没有总量。
+    in property <bool> two-line: false;
+    in property <string> total;
     callback clicked;
     // 拖动左边缘：参数为目标列宽（向左拖变宽）；双击恢复默认宽度。
     callback resize(length);
@@ -137,25 +147,51 @@ export component HeaderCell inherits Rectangle {
         }
     }
 
-    HorizontalLayout {
+    VerticalLayout {
         padding-left: 10px;
         padding-right: 10px;
-        spacing: 4px;
-        Text {
-            text: root.text;
-            horizontal-stretch: 1;
-            horizontal-alignment: root.align;
-            vertical-alignment: center;
-            font-size: 12px;
-            font-weight: root.active ? 600 : 400;
-            color: root.active ? Palette.foreground : Theme.subtle-text;
-            overflow: elide;
+        padding-top: root.two-line ? 4px : 0px;
+        padding-bottom: root.two-line ? 6px : 0px;
+        // 两行表头（进程页，#96）：上行大号整机占用，下行列名；没有总量的列上行留空，列名仍与其他列对齐。
+        if root.two-line: HorizontalLayout {
+            height: 22px;
+            Text {
+                horizontal-stretch: 1;
+                text: root.total;
+                horizontal-alignment: root.align;
+                vertical-alignment: bottom;
+                font-size: 17px;
+                color: Palette.foreground;
+                overflow: elide;
+            }
+            // 右对齐时与下行列名的右缘对齐：让出排序箭头的宽度与间距。
+            Rectangle {
+                width: root.align == TextHorizontalAlignment.right ? 14px : 0px;
+            }
         }
+        HorizontalLayout {
+            spacing: 4px;
+            Text {
+                text: root.text;
+                horizontal-stretch: 1;
+                horizontal-alignment: root.align;
+                vertical-alignment: center;
+                font-size: 12px;
+                font-weight: root.active ? 600 : 400;
+                color: root.active ? Palette.foreground : Theme.subtle-text;
+                overflow: elide;
+            }
 
-        Chevron {
-            y: (parent.height - self.height) / 2;
-            direction: root.descending ? 0 : 1;
-            stroke: root.active ? Theme.subtle-text : transparent;
+            // 箭头固定 10px 高，直接放进布局会把这一行的最大高度限制成 10px，
+            // 单行表头的列名就贴到顶部；套一层不限高的 Rectangle 让这一行撑满表头高度。
+            Rectangle {
+                width: 10px;
+                Chevron {
+                    y: (parent.height - self.height) / 2;
+                    direction: root.descending ? 0 : 1;
+                    stroke: root.active ? Theme.subtle-text : transparent;
+                }
+            }
         }
     }
 
@@ -740,7 +776,8 @@ export component ProcessPage inherits Rectangle {
 
     VerticalLayout {
         Rectangle {
-            height: 34px;
+            // 两行表头（#96）：上行整机占用，下行列名。
+            height: 52px;
             clip: true;
             // 列选择菜单：在任意列标题上右键弹出（标题的 TouchArea 会吞掉右键，由它们转发坐标）。
             header-menu := ContextMenuArea {
@@ -784,6 +821,7 @@ export component ProcessPage inherits Rectangle {
                 height: parent.height;
                 padding-right: root.header-padding;
                 HeaderCell {
+                    two-line: true;
                     horizontal-stretch: 1;
                     resizable: false;
                     text: Columns.title-name;
@@ -799,6 +837,7 @@ export component ProcessPage inherits Rectangle {
                 }
 
                 HeaderCell {
+                    two-line: true;
                     width: Columns.eff.pid;
                     resize(d) => {
                         root.resize-column(1, d);
@@ -818,6 +857,8 @@ export component ProcessPage inherits Rectangle {
                 }
 
                 HeaderCell {
+                    two-line: true;
+                    total: Columns.total-cpu;
                     width: Columns.eff.cpu;
                     resize(d) => {
                         root.resize-column(2, d);
@@ -837,6 +878,8 @@ export component ProcessPage inherits Rectangle {
                 }
 
                 HeaderCell {
+                    two-line: true;
+                    total: Columns.total-memory;
                     width: Columns.eff.memory;
                     resize(d) => {
                         root.resize-column(3, d);
@@ -856,6 +899,8 @@ export component ProcessPage inherits Rectangle {
                 }
 
                 HeaderCell {
+                    two-line: true;
+                    total: Columns.total-disk;
                     width: Columns.eff.disk;
                     resize(d) => {
                         root.resize-column(4, d);
@@ -875,6 +920,8 @@ export component ProcessPage inherits Rectangle {
                 }
 
                 for c[i] in Columns.extra: HeaderCell {
+                    two-line: true;
+                    total: c.total == 1 ? Columns.total-gpu : c.total == 2 ? Columns.total-network : "";
                     width: c.width;
                     text: c.title;
                     align: c.right ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;

@@ -208,6 +208,8 @@ export component AppWindow inherits Window {
     in-out property <int> interval-index: 1;
     // 性能页曲线时间窗口（#86）的下标，由 Rust 按设置恢复并保存；迷你模式固定 60 秒，不受它影响。
     in-out property <int> history-window-index: 0;
+    // 性能页左栏宽度（#97），启动时由设置写入，退出时读回保存。
+    in-out property <length> perf-sidebar-width: 240px;
     callback history-window-changed(int);
     in property <bool> elevated;
     // 窗口置顶，由 Rust 按设置恢复，退出时保存。
@@ -878,6 +880,7 @@ export component AppWindow inherits Window {
                             selected-resource: root.selected-resource;
                             selected-index: root.resource-index;
                             window-index: root.history-window-index;
+                            sidebar-width <=> root.perf-sidebar-width;
                             window-selected(i) => {
                                 root.history-window-changed(i);
                             }

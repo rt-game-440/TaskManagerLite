@@ -169,6 +169,20 @@ const STEPS: &[Step] = &[
     ("15-性能内存-深色-默认尺寸", |ui| {
         resize(ui, 1080.0, 700.0)
     }),
+    // 性能页左栏宽度（#97）：最窄、最宽，以及窄窗口下最宽被收紧；最后恢复默认 240。
+    ("15a-性能左栏-最窄-深色", |ui| {
+        ui.set_perf_sidebar_width(100.0);
+    }),
+    ("15b-性能左栏-最宽-深色", |ui| {
+        ui.set_perf_sidebar_width(9999.0);
+    }),
+    ("15c-性能左栏-最宽-深色-760x480", |ui| {
+        resize(ui, 760.0, 480.0);
+    }),
+    ("15d-性能左栏-恢复默认-深色", |ui| {
+        resize(ui, 1080.0, 700.0);
+        ui.set_perf_sidebar_width(240.0);
+    }),
     // 进程图标：浏览器（有自己的图标）。依赖本机正在运行 chrome，没有时列表为空。
     ("16-进程图标-chrome-深色", |ui| {
         resize(ui, 1080.0, 700.0);
@@ -521,6 +535,16 @@ const STEPS: &[Step] = &[
             delta_y: -3000.0,
         });
     }),
+    // 往回滚到“更新”分组（#99），填一条模拟的检查结果看说明换行（不联网）。
+    ("61c-设置页更新-深色-760x600", |ui| {
+        let d = ui.global::<SettingsData>();
+        d.set_update_note(crate::i18n::trf("发现新版本 {0}：\n{1}", &[&"0.4.0", &"新功能\n进程页表头显示整机占用\n性能页左栏宽度可拖动…"]).into());
+        ui.window().dispatch_event(WindowEvent::PointerScrolled {
+            position: LogicalPosition::new(380.0, 300.0),
+            delta_x: 0.0,
+            delta_y: 380.0,
+        });
+    }),
     // 再点一次设置按钮回到进入之前的页面（性能页）。
     ("62-设置页返回-深色", |ui| {
         let need = ui.get_toolbar_min_width();
@@ -684,9 +708,9 @@ fn right_click_header_does_not_select(ui: &AppWindow) {
     );
     let before = ui.get_selected();
     let w = ui.window();
-    // 顶栏 56 + 表头 34 + 半行 15；在名称列和展开箭头位置各右键一次。
+    // 顶栏 56 + 表头 52 + 半行 15；在名称列和展开箭头位置各右键一次。
     for x in [120.0, 15.0] {
-        let at = LogicalPosition::new(sidebar_w(ui) + x, 56.0 + 34.0 + 15.0);
+        let at = LogicalPosition::new(sidebar_w(ui) + x, 56.0 + 52.0 + 15.0);
         w.dispatch_event(WindowEvent::PointerMoved { position: at });
         w.dispatch_event(WindowEvent::PointerPressed {
             position: at,
@@ -757,15 +781,15 @@ pub fn run_menu(ui: &AppWindow, spec: &str, warmup: Duration) {
             cols.invoke_toggle_detail(1);
             cols.invoke_toggle_detail(5);
         }
-        // 等列表布局完成后，在第一行名称列上右键（顶栏 56 + 表头 34 + 半行 15）。
+        // 等列表布局完成后，在第一行名称列上右键（顶栏 56 + 表头 52 + 半行 15）。
         Timer::single_shot(Duration::from_millis(500), move || {
             let Some(ui) = weak.upgrade() else { return };
             let at = LogicalPosition::new(
                 sidebar_w(&ui) + 120.0,
                 if header {
-                    56.0 + 17.0
+                    56.0 + 26.0
                 } else {
-                    56.0 + 34.0 + 15.0
+                    56.0 + 52.0 + 15.0
                 },
             );
             let w = ui.window();
@@ -1037,7 +1061,7 @@ pub fn run_menu_action(ui: &AppWindow, spec: &str, warmup: Duration) {
 
 /// 在表头（y = 56 + 17）的 `x` 处按下并水平拖动 `dx` 逻辑像素。
 fn drag(ui: &AppWindow, x: f32, dx: f32) {
-    let y = 56.0 + 17.0;
+    let y = 56.0 + 26.0;
     let w = ui.window();
     let at = |x: f32| LogicalPosition::new(x, y);
     // 抓在列边缘右侧 2 像素处，落在 8 像素宽的拖动区内。

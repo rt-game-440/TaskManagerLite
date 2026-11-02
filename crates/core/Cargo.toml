@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+serde_json = "1"
 windows = { version = "0.62", features = [
     "Wdk_System_Threading",
     "Wdk_System_SystemInformation",
@@ -22,6 +23,7 @@ windows = { version = "0.62", features = [
     "Win32_NetworkManagement_IpHelper",
     "Win32_NetworkManagement_WiFi",
     "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinHttp",
     "Win32_Networking_WinSock",
     "Win32_Graphics_Gdi",
     "Win32_System_Com",

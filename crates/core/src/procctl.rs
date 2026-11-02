@@ -988,6 +988,24 @@ mod tests {
         assert_eq!(find(&sampler.sample()), Some(Some(false)));
     }
 
+    /// 挂起 / 恢复调用返回时，目标线程不一定已经进入（或离开）挂起等待状态，
+    /// 慢机器（CI）上紧接着读可能还是旧状态：反复读取直到等于 `expect`，最多等 2 秒，返回最后读到的值。
+    fn settle<T: PartialEq>(expect: &T, mut read: impl FnMut() -> T) -> T {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            let got = read();
+            if got == *expect || std::time::Instant::now() >= deadline {
+                return got;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+    }
+
+    /// 采样器回读目标进程是否“已挂起”（`Counters::suspended`），等状态稳定到 `expect`（见 `settle`）。
+    fn sampled_suspended_settled(sampler: &mut crate::Sampler, key: ProcessKey, expect: bool) -> Option<bool> {
+        settle(&Some(expect), || sampled_suspended(sampler, key))
+    }
+
     /// 采样器回读目标进程是否“已挂起”（`Counters::suspended`）。
     fn sampled_suspended(sampler: &mut crate::Sampler, key: ProcessKey) -> Option<bool> {
         sampler
@@ -1008,9 +1026,9 @@ mod tests {
         assert_eq!(sampled_suspended(&mut sampler, key), Some(false));
 
         suspend_process(key).unwrap();
-        assert_eq!(sampled_suspended(&mut sampler, key), Some(true), "挂起后下一次采样应读到已挂起");
+        assert_eq!(sampled_suspended_settled(&mut sampler, key, true), Some(true), "挂起后采样应读到已挂起");
         resume_process(key).unwrap();
-        assert_eq!(sampled_suspended(&mut sampler, key), Some(false), "恢复后应回到未挂起");
+        assert_eq!(sampled_suspended_settled(&mut sampler, key, false), Some(false), "恢复后应回到未挂起");
     }
 
     #[test]
@@ -1023,12 +1041,12 @@ mod tests {
         suspend_process(key).unwrap();
         resume_process(key).unwrap();
         assert_eq!(
-            sampled_suspended(&mut sampler, key),
+            sampled_suspended_settled(&mut sampler, key, true),
             Some(true),
             "挂起两次后恢复一次仍是挂起（计数式），所以界面要避免重复挂起"
         );
         resume_process(key).unwrap();
-        assert_eq!(sampled_suspended(&mut sampler, key), Some(false));
+        assert_eq!(sampled_suspended_settled(&mut sampler, key, false), Some(false));
     }
 
     #[test]
@@ -1077,10 +1095,10 @@ mod tests {
         assert_eq!(still_suspended(&[]), Vec::<ProcessKey>::new());
         assert_eq!(still_suspended(&[key]), Vec::<ProcessKey>::new(), "未挂起");
         suspend_process(key).unwrap();
-        assert_eq!(still_suspended(&[key]), vec![key]);
+        assert_eq!(settle(&vec![key], || still_suspended(&[key])), vec![key]);
         let reused = ProcessKey { create_time: key.create_time + 1, ..key };
         assert_eq!(still_suspended(&[reused]), Vec::<ProcessKey>::new(), "创建时间不同视为另一个进程");
         resume_process(key).unwrap();
-        assert_eq!(still_suspended(&[key]), Vec::<ProcessKey>::new());
+        assert_eq!(settle(&Vec::new(), || still_suspended(&[key])), Vec::<ProcessKey>::new());
     }
 }
