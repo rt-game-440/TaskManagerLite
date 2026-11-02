@@ -182,10 +182,15 @@ export component HeaderCell inherits Rectangle {
                 overflow: elide;
             }
 
-            Chevron {
-                y: (parent.height - self.height) / 2;
-                direction: root.descending ? 0 : 1;
-                stroke: root.active ? Theme.subtle-text : transparent;
+            // 箭头固定 10px 高，直接放进布局会把这一行的最大高度限制成 10px，
+            // 单行表头的列名就贴到顶部；套一层不限高的 Rectangle 让这一行撑满表头高度。
+            Rectangle {
+                width: 10px;
+                Chevron {
+                    y: (parent.height - self.height) / 2;
+                    direction: root.descending ? 0 : 1;
+                    stroke: root.active ? Theme.subtle-text : transparent;
+                }
             }
         }
     }
