@@ -28,15 +28,51 @@ export global Columns {
     out property <length> default-memory: 108px;
     out property <length> default-disk: 108px;
     out property <length> min: 48px;
-    out property <length> max: 480px;
+    // 上限与 settings.rs 的 `ColumnWidths::MAX` 一致；默认布局等分后的宽度可能较大，冻结时不能被截断。
+    out property <length> max: 1200px;
+    // “详细信息”列的宽度范围，与 details.rs 的 MIN_WIDTH / MAX_WIDTH 保持一致。
+    out property <length> detail-min: 40px;
+    out property <length> detail-max: 1200px;
     // 名称列至少保留的宽度；上面的 pid/cpu/... 是用户设定值，实际显示用 `eff`：
     // 列宽总和超出可用宽度时按比例缩小（算法在 Rust 侧，见 settings.rs 的 `ColumnWidths::fit`），设定值不变。
     out property <length> name-min: 180px;
+    // 名称列宽度：0 表示自动填满（默认）；拖过表头分隔线后固定，此后表格左对齐，
+    // 放不下就横向滚动、放得下右侧留空。范围与 settings.rs 的 NAME_WIDTH_MIN / MAX 一致。
+    in-out property <length> name: 0px;
+    out property <length> name-fixed-min: 100px;
+    out property <length> name-fixed-max: 1200px;
     // 列表可用于各列的宽度，由 ProcessPage 随窗口宽度更新。
     in-out property <length> available;
     pure callback fit(length, length, length, length, length, length) -> ColumnLayout;
-    // 显示了“详细信息”列时表格可以横向滚动，基本列不再为了挤进窗口而缩小。
-    out property <ColumnLayout> eff: self.fit(self.extra-total > 0 ? 100000px : self.available, self.name-min, self.pid, self.cpu, self.memory, self.disk);
+    // PID 列是否显示（默认隐藏，表头右键菜单切换；由 Rust 从设置恢复与保存）。
+    in-out property <bool> show-pid: false;
+    // GPU 列在显示中的“详细信息”列里的位置（-1 未显示）与保存的宽度（由 Rust 维护）。
+    in-out property <int> gpu-index: -1;
+    in-out property <length> gpu-stored: 0px;
+
+    // 默认布局（name == 0，首次启动、双击名称列分隔线或“恢复默认列”后）：名称列取默认宽度，
+    // CPU、内存、磁盘、GPU（显示时）等宽并撑满其余宽度；PID 与其他详细列保持各自宽度。
+    // 拖动任一分隔线后整体固化为固定宽度（见 ProcessPage.freeze），此后放不下就横向滚动、放得下右侧留空。
+    out property <bool> auto: self.name <= 0;
+    out property <length> name-default: 300px;
+    property <length> pid-clamped: Math.max(self.min, Math.min(self.max, self.pid));
+    property <int> share-count: self.gpu-index >= 0 ? 4 : 3;
+    // 默认布局下不参与等分的列宽之和。
+    property <length> fixed-others: (self.show-pid ? self.pid-clamped : 0px) + self.extra-total - self.gpu-stored;
+    property <length> name-auto: Math.max(self.name-min, Math.min(self.name-default, self.available - self.fixed-others - self.share-count * self.default-cpu));
+    out property <length> share: Math.max(self.min, (self.available - self.name-auto - self.fixed-others) / self.share-count);
+    out property <ColumnLayout> eff: self.auto
+        ? { pid: self.pid-clamped, cpu: self.share, memory: self.share, disk: self.share }
+        : self.fit(100000px, self.name-min, self.pid, self.cpu, self.memory, self.disk);
+    out property <length> pid-eff: self.show-pid ? self.eff.pid : 0px;
+    out property <length> name-eff: self.auto ? self.name-auto : self.name;
+    // 详细列实际宽度之和（默认布局下 GPU 列取等分宽度）。
+    out property <length> extra-eff: self.auto && self.gpu-index >= 0 ? self.extra-total - self.gpu-stored + self.share : self.extra-total;
+
+    // 第 i 个详细列的实际宽度。
+    public pure function extra-width(i: int, w: length) -> length {
+        self.auto && i == self.gpu-index ? self.share : w
+    }
 
     // “详细信息”列（由 Rust 维护）：显示中的列及其宽度总和、列选择菜单的选项（全部可选列）。
     in-out property <[DetailHeader]> extra;
@@ -124,9 +160,11 @@ export component HeaderCell inherits Rectangle {
     in property <bool> two-line: false;
     in property <string> total;
     callback clicked;
-    // 拖动左边缘：参数为目标列宽（向左拖变宽）；双击恢复默认宽度。
+    // 拖动分隔线：参数为本列的目标列宽；双击恢复默认宽度。
+    // 分隔线默认在左边缘（向左拖本列变宽）；`grip-right` 时在右边缘，只调本列，向右拖变宽。
     callback resize(length);
     callback reset();
+    in property <bool> grip-right: false;
     // 右键按下：参数为指针的窗口坐标，由页面弹出列选择菜单。
     callback context-menu(length, length);
 
@@ -196,7 +234,7 @@ export component HeaderCell inherits Rectangle {
     }
 
     if root.resizable: Rectangle {
-        x: -3px;
+        x: root.grip-right ? root.width - 5px : -3px;
         width: 8px;
         Rectangle {
             x: 3px;
@@ -216,7 +254,8 @@ export component HeaderCell inherits Rectangle {
             }
             moved => {
                 if self.pressed {
-                    root.resize(root.drag-width + root.drag-from - (self.absolute-position.x + self.mouse-x));
+                    let delta = self.absolute-position.x + self.mouse-x - root.drag-from;
+                    root.resize(root.grip-right ? root.drag-width + delta : root.drag-width - delta);
                 }
             }
             double-clicked => {
@@ -554,7 +593,7 @@ component ProcRowView inherits Rectangle {
 
     HorizontalLayout {
         HorizontalLayout {
-            horizontal-stretch: 1;
+            width: Columns.name-eff;
             padding-left: 6px + root.data.depth * 18px;
             padding-right: 10px;
             spacing: 4px;
@@ -618,7 +657,7 @@ component ProcRowView inherits Rectangle {
             }
         }
 
-        ValueCell {
+        if Columns.show-pid: ValueCell {
             width: Columns.eff.pid;
             text: root.data.pid;
             heat: 0;
@@ -643,9 +682,14 @@ component ProcRowView inherits Rectangle {
         }
 
         for t[i] in root.data.extra: TextCell {
-            width: Columns.extra[i].width;
+            width: Columns.extra-width(i, Columns.extra[i].width);
             text: t;
             right: Columns.extra[i].right;
+        }
+
+        // 与表头一致：列宽总和小于表格宽度时右侧留空。
+        Rectangle {
+            horizontal-stretch: 1;
         }
     }
 
@@ -693,8 +737,8 @@ export component ProcessPage inherits Rectangle {
 
     // 表头右侧留白；其余宽度交给 Columns 分配。
     property <length> header-padding: 10px;
-    // 表格（行与表头）的宽度：放得下所有列时等于页面宽度，名称列伸缩；放不下时横向滚动，名称列保持最小宽度。
-    property <length> rows-width: max(root.width, Columns.name-min + Columns.eff.pid + Columns.eff.cpu + Columns.eff.memory + Columns.eff.disk + Columns.extra-total + root.header-padding);
+    // 表格（行与表头）的宽度：放得下所有列时等于页面宽度（名称列自动时填满，固定时右侧留空）；放不下时横向滚动。
+    property <length> rows-width: max(root.width, Columns.name-eff + Columns.pid-eff + Columns.eff.cpu + Columns.eff.memory + Columns.eff.disk + Columns.extra-eff + root.header-padding);
 
     function sync-available() {
         Columns.available = root.width - root.header-padding;
@@ -708,60 +752,76 @@ export component ProcessPage inherits Rectangle {
         root.sync-available();
     }
 
-    function column-width(col: int) -> length {
-        col == 1 ? Columns.eff.pid : col == 2 ? Columns.eff.cpu : col == 3 ? Columns.eff.memory : Columns.eff.disk
-    }
-
-    // 表格宽度变化后调整横向滚动位置，让被拖动列右侧的内容在屏幕上不动，
-    // 被拖动的左边缘因而跟随指针（与不需要横向滚动、名称列伸缩时的表现一致）。
-    function keep-right(before: length) {
-        list.content-x = max(min(0px, list.visible-width - root.rows-width), min(0px, list.content-x - (root.rows-width - before)));
-    }
-
-    function resize-detail(i: int, target: length) {
-        let before = root.rows-width;
-        Columns.resize-detail(i, target);
-        root.keep-right(before);
-    }
-
     function show-header-menu(x: length, y: length) {
         header-menu.show({ x: x - header-menu.absolute-position.x, y: y - header-menu.absolute-position.y });
     }
 
-    function resize-column(col: int, target: length) {
-        // 拖动前先把各列当前的有效宽度固化为设定值，避免总和受限时其他列跟着重新缩放。
-        let before = root.rows-width;
+    // 表头分隔线在每列右边缘，只调它左边那一列；右侧各列宽度不变、跟着平移。
+    // 列序号：0 名称、1 PID、2 CPU、3 内存、4 磁盘、5+i 第 i 个“详细信息”列。
+    function col-min(k: int) -> length {
+        k == 0 ? Columns.name-fixed-min : k <= 4 ? Columns.min : Columns.detail-min
+    }
+
+    function col-max(k: int) -> length {
+        k == 0 ? Columns.name-fixed-max : k <= 4 ? Columns.max : Columns.detail-max
+    }
+
+    // 把名称列与基本列当前的有效宽度固化为设定值：名称列从自动填满转为固定宽度，
+    // 基本列不再因窗口宽度按比例缩放，之后改一列不会牵动其他列。
+    function freeze() {
+        if !Columns.auto {
+            return;
+        }
+        let n = Columns.name-eff;
         let e = Columns.eff;
+        if Columns.gpu-index >= 0 {
+            Columns.resize-detail(Columns.gpu-index, Columns.share);
+        }
         Columns.pid = e.pid;
         Columns.cpu = e.cpu;
         Columns.memory = e.memory;
         Columns.disk = e.disk;
-        let current = root.column-width(col);
-        let others = Columns.pid + Columns.cpu + Columns.memory + Columns.disk - current;
-        // 显示了详细信息列时表格可以横向滚动，列宽不受窗口宽度限制。
-        let upper = Columns.extra-total > 0 ? Columns.max : max(Columns.min, min(Columns.max, Columns.available - Columns.name-min - others));
-        let w = max(Columns.min, min(upper, target));
-        if col == 1 {
-            Columns.pid = w;
-        } else if col == 2 {
-            Columns.cpu = w;
-        } else if col == 3 {
-            Columns.memory = w;
-        } else {
-            Columns.disk = w;
-        }
-        root.keep-right(before);
+        Columns.name = n;
     }
 
-    function reset-column(col: int) {
-        if col == 1 {
-            Columns.pid = Columns.default-pid;
-        } else if col == 2 {
-            Columns.cpu = Columns.default-cpu;
-        } else if col == 3 {
-            Columns.memory = Columns.default-memory;
+    function resize-col(k: int, target: length) {
+        root.freeze();
+        root.set-col(k, max(root.col-min(k), min(root.col-max(k), target)));
+    }
+
+    function set-col(k: int, w: length) {
+        if k == 0 {
+            Columns.name = w;
+        } else if k == 1 {
+            Columns.pid = w;
+        } else if k == 2 {
+            Columns.cpu = w;
+        } else if k == 3 {
+            Columns.memory = w;
+        } else if k == 4 {
+            Columns.disk = w;
         } else {
+            Columns.resize-detail(k - 5, w);
+        }
+    }
+
+    // 双击分隔线：名称列回到自动填满；其他列恢复默认宽度（名称列保持固定，右侧各列平移）。
+    function reset-col(k: int) {
+        if k == 0 {
+            Columns.name = 0px;
+            return;
+        }
+        root.freeze();
+        if k == 1 {
+            Columns.pid = Columns.default-pid;
+        } else if k == 2 {
+            Columns.cpu = Columns.default-cpu;
+        } else if k == 3 {
+            Columns.memory = Columns.default-memory;
+        } else if k == 4 {
             Columns.disk = Columns.default-disk;
+        } else {
+            Columns.reset-detail-width(k - 5);
         }
     }
 
@@ -784,6 +844,13 @@ export component ProcessPage inherits Rectangle {
                 width: 100%;
                 height: 100%;
                 Menu {
+                    // PID 是基本列，不在 choices 里；勾选状态由菜单自动切换，经双向绑定写回。
+                    MenuItem {
+                        title: Columns.title-pid;
+                        checkable: true;
+                        checked <=> Columns.show-pid;
+                    }
+
                     for c[i] in Columns.choices: MenuItem {
                         title: c.title;
                         checkable: true;
@@ -822,8 +889,14 @@ export component ProcessPage inherits Rectangle {
                 padding-right: root.header-padding;
                 HeaderCell {
                     two-line: true;
-                    horizontal-stretch: 1;
-                    resizable: false;
+                    width: Columns.name-eff;
+                    grip-right: true;
+                    resize(d) => {
+                        root.resize-col(0, d);
+                    }
+                    reset => {
+                        root.reset-col(0);
+                    }
                     text: Columns.title-name;
                     align: left;
                     active: root.sort-key == 0;
@@ -836,14 +909,15 @@ export component ProcessPage inherits Rectangle {
                     }
                 }
 
-                HeaderCell {
+                if Columns.show-pid: HeaderCell {
                     two-line: true;
                     width: Columns.eff.pid;
+                    grip-right: true;
                     resize(d) => {
-                        root.resize-column(1, d);
+                        root.resize-col(1, d);
                     }
                     reset => {
-                        root.reset-column(1);
+                        root.reset-col(1);
                     }
                     text: Columns.title-pid;
                     active: root.sort-key == 1;
@@ -860,11 +934,12 @@ export component ProcessPage inherits Rectangle {
                     two-line: true;
                     total: Columns.total-cpu;
                     width: Columns.eff.cpu;
+                    grip-right: true;
                     resize(d) => {
-                        root.resize-column(2, d);
+                        root.resize-col(2, d);
                     }
                     reset => {
-                        root.reset-column(2);
+                        root.reset-col(2);
                     }
                     text: Columns.title-cpu;
                     active: root.sort-key == 2;
@@ -881,11 +956,12 @@ export component ProcessPage inherits Rectangle {
                     two-line: true;
                     total: Columns.total-memory;
                     width: Columns.eff.memory;
+                    grip-right: true;
                     resize(d) => {
-                        root.resize-column(3, d);
+                        root.resize-col(3, d);
                     }
                     reset => {
-                        root.reset-column(3);
+                        root.reset-col(3);
                     }
                     text: Columns.title-memory;
                     active: root.sort-key == 3;
@@ -902,11 +978,12 @@ export component ProcessPage inherits Rectangle {
                     two-line: true;
                     total: Columns.total-disk;
                     width: Columns.eff.disk;
+                    grip-right: true;
                     resize(d) => {
-                        root.resize-column(4, d);
+                        root.resize-col(4, d);
                     }
                     reset => {
-                        root.reset-column(4);
+                        root.reset-col(4);
                     }
                     text: Columns.title-disk;
                     active: root.sort-key == 4;
@@ -922,7 +999,7 @@ export component ProcessPage inherits Rectangle {
                 for c[i] in Columns.extra: HeaderCell {
                     two-line: true;
                     total: c.total == 1 ? Columns.total-gpu : c.total == 2 ? Columns.total-network : "";
-                    width: c.width;
+                    width: Columns.extra-width(i, c.width);
                     text: c.title;
                     align: c.right ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
                     active: root.sort-key == c.sort;
@@ -930,17 +1007,21 @@ export component ProcessPage inherits Rectangle {
                     clicked => {
                         root.sort-by(c.sort);
                     }
+                    grip-right: true;
                     resize(w) => {
-                        root.resize-detail(i, w);
+                        root.resize-col(5 + i, w);
                     }
                     reset => {
-                        let before = root.rows-width;
-                        Columns.reset-detail-width(i);
-                        root.keep-right(before);
+                        root.reset-col(5 + i);
                     }
                     context-menu(x, y) => {
                         root.show-header-menu(x, y);
                     }
+                }
+
+                // 名称列固定后列宽总和可能小于窗口：右侧留空。
+                Rectangle {
+                    horizontal-stretch: 1;
                 }
             }
 

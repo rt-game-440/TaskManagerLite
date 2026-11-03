@@ -316,43 +316,27 @@ const STEPS: &[Step] = &[
     ("41-工具栏-进程-未提权-浅色-900x600", |ui| {
         toolbar(ui, 0, false, false, 900.0)
     }),
-    // 置顶开关：按下态与实心图钉。
-    ("42-工具栏-已置顶-深色-1080x600", |ui| {
+    // 顶栏只放页面标题与本页操作；提权入口在设置页“常规”里。
+    ("42-设置页-未提权-深色-1080x600", |ui| {
+        toolbar(ui, 2, false, true, 1080.0)
+    }),
+    ("43-设置页-已提权-浅色-1080x600", |ui| {
+        toolbar(ui, 2, true, false, 1080.0)
+    }),
+    // 状态栏右侧的暂停 / 继续：已暂停时左侧多“已暂停刷新”，按钮换成“继续刷新”。
+    ("44-状态栏-已暂停-深色-1080x600", |ui| {
         toolbar(ui, 0, false, true, 1080.0);
-        ui.set_pinned(true);
+        ui.set_interval_index(3);
     }),
-    ("43-工具栏-已置顶-浅色-760x600", |ui| {
-        toolbar(ui, 0, false, false, 760.0)
+    ("45-工具栏-连接-深色-760x600", |ui| {
+        ui.set_interval_index(1);
+        toolbar(ui, 5, false, true, 760.0)
     }),
-    ("44-工具栏-已置顶-性能-深色-760x600", |ui| {
-        toolbar(ui, 1, true, true, 760.0)
-    }),
-    // 指针停在收起后的提权按钮上：先是悬停态，约 0.5 秒后出现完整文字的提示（下一步截图）。放在最后，免得悬停影响其他步骤。
-    ("45-工具栏-提权图标悬停-深色-760x600", |ui| {
-        toolbar(ui, 0, false, true, 760.0);
-        ui.set_pinned(false);
-        hover_compact_elevate(ui);
-    }),
-    ("46-工具栏-提权图标提示-深色-760x600", |_| {}),
-    // 指针移到置顶按钮上（提权图标左侧 32 + 8，提权图标在最右）：约 0.5 秒后出现提示。
-    ("47-工具栏-置顶按钮悬停-深色-760x600", |ui| {
-        let width = ui
-            .window()
-            .size()
-            .to_logical(ui.window().scale_factor())
-            .width;
-        let at = LogicalPosition::new(width - 12.0 - 40.0 - 16.0, 28.0);
-        ui.window()
-            .dispatch_event(WindowEvent::PointerMoved { position: at });
-    }),
-    ("48-工具栏-置顶按钮提示-深色-760x600", |_| {}),
     // 详细信息列：依次勾选状态、用户名、句柄、线程、描述、映像路径、命令行（按勾选顺序追加在最右），
     // 总宽超出窗口，表格横向滚动。静态信息由后台读取，下一步再截图，等结果到达。
     ("49-详细信息列-读取中-深色", |ui| {
         toolbar(ui, 0, false, true, 1080.0);
         resize(ui, 1080.0, 700.0);
-        // 指针离开置顶按钮，收起上一步的提示。
-        ui.window().dispatch_event(WindowEvent::PointerExited);
         let cols = ui.global::<Columns>();
         for i in [0, 1, 4, 5, 15, 11, 12] {
             cols.invoke_toggle_detail(i);
@@ -370,7 +354,7 @@ const STEPS: &[Step] = &[
             delta_y: 0.0,
         });
     }),
-    // 滚到最右时拖宽最后一列（命令行）的左边缘 80 像素：列跟随指针变宽，右侧内容不动。
+    // 滚到最右时把最后一列（命令行）的右边缘向右拖 80 像素：列跟随指针变宽。
     ("52-详细信息列-滚动时拖宽-深色", |ui| {
         let width = ui
             .window()
@@ -380,7 +364,8 @@ const STEPS: &[Step] = &[
         let cols = ui.global::<Columns>();
         let last = cols.get_extra().row_count() - 1;
         let before = cols.get_extra().row_data(last).unwrap().width;
-        drag(ui, width - 10.0 - before, -80.0);
+        // 分隔线在列的右边缘（只调左侧那一列），最后一列的右边缘在窗口右侧 10 像素处。
+        drag(ui, width - 10.0 - 4.0, 80.0);
         let after = cols.get_extra().row_data(last).unwrap().width;
         assert!(
             (after - before - 80.0).abs() < 1.0,
@@ -676,27 +661,6 @@ fn toolbar(ui: &AppWindow, page: i32, elevated: bool, dark: bool, width: f32) {
     ui.set_filter("".into());
     ui.invoke_filter_edited("".into());
     resize(ui, width, 600.0);
-}
-
-/// 把指针移到收起后的提权按钮中心：顶栏高 56，右内边距 12，按钮 32×32，它在最右。
-fn hover_compact_elevate(ui: &AppWindow) {
-    // `if` 条件元素要在处理输入时才按新页面增删实例，先触发一次再读布局结果。
-    ui.window().dispatch_event(WindowEvent::PointerExited);
-    assert!(
-        ui.get_toolbar_elevate_compact(),
-        "760 宽时提权按钮应已收成图标（窗口 {:?}，侧边栏 {}，工具栏 {}）",
-        ui.window().size(),
-        ui.get_sidebar_width(),
-        ui.get_toolbar_min_width()
-    );
-    let width = ui
-        .window()
-        .size()
-        .to_logical(ui.window().scale_factor())
-        .width;
-    let at = LogicalPosition::new(width - 12.0 - 16.0, 28.0);
-    ui.window()
-        .dispatch_event(WindowEvent::PointerMoved { position: at });
 }
 
 /// 在第一个标题行上右键：不能选中任何行，也不能弹出进程菜单（弹出会阻塞，截图流程会卡住）。

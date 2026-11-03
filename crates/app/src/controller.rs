@@ -310,6 +310,8 @@ impl Controller {
         cols.set_cpu(settings.columns.cpu);
         cols.set_memory(settings.columns.memory);
         cols.set_disk(settings.columns.disk);
+        cols.set_name(settings.name_width.unwrap_or(0.0));
+        cols.set_show_pid(settings.show_pid);
         // 列宽总和超出可用宽度时的有效列宽（保存值不变，窗口放大后自然恢复）。
         cols.on_fit(|available, name_min, pid, cpu, memory, disk| {
             let w = ColumnWidths {
@@ -681,6 +683,10 @@ impl Controller {
             disk: cols.get_disk(),
         }
         .clamped();
+        settings.show_pid = cols.get_show_pid();
+        let name = cols.get_name();
+        settings.name_width = (name > 0.0)
+            .then(|| name.clamp(crate::settings::NAME_WIDTH_MIN, crate::settings::NAME_WIDTH_MAX));
         let result = store.save(&settings);
         drop(settings);
         let mut log = self.log.borrow_mut();

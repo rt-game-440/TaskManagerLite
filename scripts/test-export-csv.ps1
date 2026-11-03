@@ -97,6 +97,8 @@ function New-Env($name, $settingsJson) {
     $dir = Join-Path $root $name
     $s = Join-Path $dir 'settings'; $l = Join-Path $dir 'logs'
     New-Item -ItemType Directory -Force $s, $l | Out-Null
+    # PID 列默认隐藏；本脚本的断言按含 PID 的列序写，统一显式打开。
+    if ($settingsJson -and $settingsJson -notmatch '"columns"') { $settingsJson = $settingsJson -replace '^\{', '{"columns":{"pid_shown":true},' }
     if ($settingsJson) { Set-Content -Path (Join-Path $s 'settings.json') -Value $settingsJson -Encoding utf8 }
     @{ Settings = $s; Logs = $l; Dir = $dir }
 }
@@ -422,9 +424,9 @@ try {
             Check ($h[5] -eq '命令行' -and $h[0] -eq '名称') "表头：$($h -join ' | ')"
         }
 
-        # 性能页：Ctrl+2，左栏底部的“导出当前快照…”。
+        # 性能页：Ctrl+2，顶栏的“导出当前快照…”图标按钮（顶栏高 56，右内边距 12，迷你模式按钮 32 在最右，左侧间距 8，再左 32 即导出）。
         Key @([uint16]0x11, [uint16]0x32); Start-Sleep -Milliseconds 800
-        Click-At (($sidebar + 12) + 120) ($lh - 28 - 12 - 16) $false
+        Click-At ($lw - 12 - 32 - 8 - 16) 28 $false
         Check (Wait-SaveDialog) '性能页“导出当前快照…”弹出保存对话框（没有敏感列提示）'
         $savedPerf = Join-Path $uEnv.Dir 'ui 性能快照.csv'
         Set-Clipboard -Value $savedPerf

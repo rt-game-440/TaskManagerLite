@@ -45,6 +45,11 @@ pub fn title(c: DetailColumn) -> &'static str {
     }
 }
 
+/// 默认显示的“详细信息”列（首次启动与“恢复默认列”）：GPU。
+pub fn default_shown() -> Vec<Shown> {
+    vec![Shown { column: DetailColumn::Gpu, width: default_width(DetailColumn::Gpu) }]
+}
+
 /// 列的默认宽度（逻辑像素）。
 pub fn default_width(c: DetailColumn) -> f32 {
     match c {

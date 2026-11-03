@@ -205,8 +205,6 @@ export component PerformancePage inherits Rectangle {
     // 曲线时间窗口的下标（0 60 秒，1 5 分钟，2 10 分钟，3 1 小时）；选择后由 Rust 保存并回写。
     in property <int> window-index;
     callback window-selected(int);
-    // 左栏底部的“导出当前快照…”：把各资源的当前数值与时间窗口内的曲线导出为 CSV。
-    callback export-snapshot();
     // 双击左栏卡片：切换到迷你模式。
     callback mini-mode();
     // 内存详情页的数据（kind == memory 时使用）。
@@ -269,13 +267,6 @@ export component PerformancePage inherits Rectangle {
             }
         }
         }
-
-            Button {
-                text: @tr("导出当前快照…");
-                clicked => {
-                    root.export-snapshot();
-                }
-            }
         }
 
         // 分隔条：占原来 12px 的间距，悬停或拖动时显示一条强调色竖线。
