@@ -87,7 +87,12 @@ impl Controller {
         let c = Rc::downgrade(self);
         cols.on_reset_details(move || {
             if let Some(c) = c.upgrade() {
-                c.edit_columns(|s| s.details.clear());
+                if let Some(ui) = c.ui.upgrade() {
+                    // 同时回到默认布局（名称列固定默认宽度，四个资源列等分其余宽度）。
+                    ui.global::<Columns>().set_show_pid(false);
+                    ui.global::<Columns>().set_name(0.0);
+                }
+                c.edit_columns(|s| s.details = details::default_shown());
             }
         });
         let c = Rc::downgrade(self);
@@ -173,6 +178,10 @@ impl Controller {
             })
             .collect();
         cols.set_extra_total(s.details.iter().map(|d| d.width).sum());
+        // 默认布局下 GPU 列与 CPU/内存/磁盘等分宽度，界面需要知道它的位置与已保存的宽度。
+        let gpu = s.details.iter().position(|d| d.column == DetailColumn::Gpu);
+        cols.set_gpu_index(gpu.map_or(-1, |i| i as i32));
+        cols.set_gpu_stored(gpu.map_or(0.0, |i| s.details[i].width));
         assign(&self.detail_headers, headers);
         // 系统不支持效率模式时不提供这一列（它排在 ALL 末尾，下标与 `on_toggle_detail` 仍对得上）。
         let eco_ok = tml_core::eco_supported();

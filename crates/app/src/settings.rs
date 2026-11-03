@@ -59,7 +59,11 @@ impl Default for MiniSettings {
     }
 }
 
-/// 进程列表中可调宽度的列，单位为逻辑像素；名称列自动伸缩，不在其中。
+/// 进程列表名称列固定宽度的范围（与 process-page.slint 的 `Columns.name-fixed-min/max` 一致）。
+pub const NAME_WIDTH_MIN: f32 = 100.0;
+pub const NAME_WIDTH_MAX: f32 = 1200.0;
+
+/// 进程列表中可调宽度的列，单位为逻辑像素；名称列另存在 `Settings::name_width`。
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ColumnWidths {
     pub pid: f32,
@@ -70,7 +74,7 @@ pub struct ColumnWidths {
 
 impl ColumnWidths {
     pub const MIN: f32 = 48.0;
-    pub const MAX: f32 = 480.0;
+    pub const MAX: f32 = 1200.0;
 
     pub fn clamped(self) -> Self {
         let c = |v: f32| v.clamp(Self::MIN, Self::MAX);
@@ -117,6 +121,11 @@ pub struct Settings {
     /// 性能页选中的资源实例 id（`cpu`、`memory`、`disk`、`network`……）。
     pub resource: String,
     pub columns: ColumnWidths,
+    /// 进程列表名称列的宽度：`None` 表示自动填满（默认）；用户拖过表头分隔线后固定为具体宽度，
+    /// 钳制到 [`NAME_WIDTH_MIN`]–[`NAME_WIDTH_MAX`]。存在 `columns.name`。
+    pub name_width: Option<f32>,
+    /// 进程列表是否显示 PID 列（默认隐藏，表头右键菜单切换）。存在 `columns.pid_shown`。
+    pub show_pid: bool,
     /// 显示中的“详细信息”列，按显示顺序。
     pub details: Vec<Shown>,
     /// 用 ETW 统计进程磁盘速率（需要管理员权限，默认关闭，见 ADR-0004）。
@@ -165,7 +174,9 @@ impl Default for Settings {
             page: 0,
             resource: "cpu".into(),
             columns: ColumnWidths::default(),
-            details: Vec::new(),
+            name_width: None,
+            show_pid: false,
+            details: details::default_shown(),
             accurate_disk_io: false,
             highlight_changes: true,
             highlight_ms: 1500,
@@ -389,6 +400,14 @@ impl Settings {
                 memory: get("memory", d.memory),
                 disk: get("disk", d.disk),
             };
+            s.name_width = c
+                .get("name")
+                .and_then(Value::as_f64)
+                .filter(|v| v.is_finite() && *v > 0.0)
+                .map(|v| (v as f32).clamp(NAME_WIDTH_MIN, NAME_WIDTH_MAX));
+            if let Some(b) = c.get("pid_shown").and_then(Value::as_bool) {
+                s.show_pid = b;
+            }
         }
         if let Some(b) = o.get("background_sampling").and_then(Value::as_bool) {
             s.background_sampling = b;
@@ -448,6 +467,8 @@ impl Settings {
         }
         // 未知的列名、重复项与非法宽度被跳过；宽度缺失时用该列的默认宽度。
         if let Some(list) = o.get("detail_columns").and_then(Value::as_array) {
+            // 字段存在（哪怕是空列表）就以它为准；缺失时保留默认显示的列。
+            s.details.clear();
             for item in list.iter().filter_map(Value::as_object) {
                 let Some(column) = item.get("id").and_then(Value::as_str).and_then(DetailColumn::from_id) else { continue };
                 if s.details.iter().any(|d| d.column == column) {
@@ -502,6 +523,10 @@ impl Settings {
         c.insert("cpu".into(), number(self.columns.cpu));
         c.insert("memory".into(), number(self.columns.memory));
         c.insert("disk".into(), number(self.columns.disk));
+        if let Some(w) = self.name_width {
+            c.insert("name".into(), number(w));
+        }
+        c.insert("pid_shown".into(), self.show_pid.into());
         o.insert("columns".into(), Value::Object(c));
         let shown: Vec<Value> = self
             .details
@@ -633,6 +658,8 @@ mod tests {
             page: 1,
             resource: "network".into(),
             columns: ColumnWidths { pid: 90.0, cpu: 64.5, memory: 140.0, disk: 200.0 },
+            name_width: Some(310.5),
+            show_pid: true,
             details: vec![
                 Shown { column: DetailColumn::CommandLine, width: 420.5 },
                 Shown { column: DetailColumn::Handles, width: 76.0 },
@@ -655,6 +682,19 @@ mod tests {
             details_window: Some(DetailsWindow { width: 900.0, height: 500.0, widths: [100.0, 110.0, 90.0, 200.0, 160.0] }),
             extra: Map::new(),
         }
+    }
+
+    #[test]
+    fn 默认隐藏pid并显示gpu列() {
+        let s = parse("{}");
+        assert!(!s.show_pid);
+        assert_eq!(s.details.iter().map(|d| d.column).collect::<Vec<_>>(), [DetailColumn::Gpu]);
+        // 明确保存过的空列表与 PID 显示状态按原样恢复。
+        let s = parse(r#"{"detail_columns": [], "columns": {"pid_shown": true}}"#);
+        assert!(s.show_pid);
+        assert!(s.details.is_empty());
+        let back = parse(&s.to_json());
+        assert!(back.show_pid && back.details.is_empty());
     }
 
     #[test]
@@ -857,7 +897,7 @@ mod tests {
         assert_eq!(s.sort_key, SortKey::Detail(DetailColumn::Handles));
         assert!(s.descending, "数值列默认降序");
         assert_eq!(parse(r#"{"sort": {"key": "detail:nope"}}"#).sort_key, SortKey::Cpu);
-        assert_eq!(parse(r#"{"detail_columns": {"id": "user"}}"#).details, vec![]);
+        assert_eq!(parse(r#"{"detail_columns": {"id": "user"}}"#).details, details::default_shown(), "类型不对按缺失处理");
         // 详细信息列排序也能往返。
         let t = Settings { sort_key: SortKey::Detail(DetailColumn::CommandLine), ..Settings::default() };
         assert_eq!(parse(&t.to_json()).sort_key, t.sort_key);
@@ -956,6 +996,17 @@ mod tests {
         assert_eq!(s.columns.memory, ColumnWidths::MIN);
         let big = parse(r#"{"window": {"x": 99999999999, "y": 0, "width": 10, "height": 10}}"#);
         assert_eq!(big.window, None);
+    }
+
+    #[test]
+    fn 名称列宽度缺省自动且可往返() {
+        assert_eq!(parse(r#"{"columns": {"pid": 80}}"#).name_width, None);
+        assert!(!Settings::default().to_json().contains(r#""name""#));
+        let s = Settings { name_width: Some(260.0), ..Settings::default() };
+        assert_eq!(parse(&s.to_json()).name_width, Some(260.0));
+        assert_eq!(parse(r#"{"columns": {"name": 5}}"#).name_width, Some(NAME_WIDTH_MIN));
+        assert_eq!(parse(r#"{"columns": {"name": 99999}}"#).name_width, Some(NAME_WIDTH_MAX));
+        assert_eq!(parse(r#"{"columns": {"name": 0}}"#).name_width, None);
     }
 
     #[test]

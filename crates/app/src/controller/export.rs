@@ -51,7 +51,8 @@ enum Outcome {
 #[derive(Debug, Clone)]
 pub struct Titles {
     pub name: String,
-    pub pid: String,
+    /// PID 列隐藏时为 `None`，导出也不含这一列。
+    pub pid: Option<String>,
     pub cpu: String,
     pub memory: String,
     pub disk: String,
@@ -107,7 +108,9 @@ pub fn process_table(
     if mode != ViewMode::Flat {
         header.push(texts::export_depth_title().to_owned());
     }
-    header.extend([&titles.name, &titles.pid, &titles.cpu, &titles.memory, &titles.disk].map(String::clone));
+    header.push(titles.name.clone());
+    header.extend(titles.pid.clone());
+    header.extend([&titles.cpu, &titles.memory, &titles.disk].map(String::clone));
     header.extend(details.iter().map(|d| details::title(d.column).to_owned()));
 
     let mut rows = Vec::with_capacity(view.len());
@@ -127,7 +130,9 @@ pub fn process_table(
             cells.push(r.depth.to_string());
         }
         cells.push(p.name.clone());
-        cells.push(p.key.pid.to_string());
+        if titles.pid.is_some() {
+            cells.push(p.key.pid.to_string());
+        }
         cells.extend(basic_texts(cpu, memory, disk));
         cells.extend(details.iter().map(|d| details::cell(p, d.column, gpu, net)));
         rows.push((p.key, cells));
@@ -295,7 +300,7 @@ impl Controller {
         let c = ui.global::<Columns>();
         Titles {
             name: c.get_title_name().to_string(),
-            pid: c.get_title_pid().to_string(),
+            pid: c.get_show_pid().then(|| c.get_title_pid().to_string()),
             cpu: c.get_title_cpu().to_string(),
             memory: c.get_title_memory().to_string(),
             disk: c.get_title_disk().to_string(),
@@ -528,7 +533,7 @@ mod tests {
     fn titles() -> Titles {
         Titles {
             name: "名称".into(),
-            pid: "PID".into(),
+            pid: Some("PID".into()),
             cpu: "CPU".into(),
             memory: "内存".into(),
             disk: "磁盘 ≈".into(),

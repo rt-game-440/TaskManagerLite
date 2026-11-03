@@ -3,7 +3,7 @@ import { Theme } from "theme.slint";
 import { SegmentedControl, ShieldIcon } from "controls.slint";
 
 // 设置页的数据与回调，由 Rust 维护（见 controller/settings_page.rs）。
-// 置顶与刷新间隔不在这里：它们与顶栏共用 AppWindow 的属性。
+// 置顶与刷新间隔不在这里：它们与状态栏、迷你窗口共用 AppWindow 的属性。
 export global SettingsData {
     // 开机启动：开关状态与状态说明（例如在系统“启动应用”中被禁用）。
     in-out property <bool> autostart;
@@ -178,6 +178,7 @@ export component SettingsPage inherits Rectangle {
     in-out property <bool> pinned;
     in-out property <int> interval-index;
     callback interval-changed(int);
+    callback elevate();
 
     init => {
         SettingsData.refresh();
@@ -199,6 +200,27 @@ export component SettingsPage inherits Rectangle {
 
             SettingGroup {
                 title: @tr("常规");
+                SettingRow {
+                    title: @tr("管理员权限");
+                    description: root.elevated
+                        ? @tr("当前以管理员身份运行。")
+                        : @tr("当前以普通权限运行。结束系统进程、精确统计进程磁盘读写等操作需要管理员权限。");
+                    if root.elevated: Text {
+                        text: @tr("已是管理员");
+                        color: Palette.foreground;
+                        opacity: 0.7;
+                        vertical-alignment: center;
+                    }
+                    if !root.elevated: Button {
+                        text: @tr("以管理员身份重启");
+                        icon: @image-url("icons/shield.svg");
+                        colorize-icon: true;
+                        clicked => {
+                            root.elevate();
+                        }
+                    }
+                }
+
                 SettingRow {
                     title: @tr("开机时启动");
                     description: SettingsData.close-to-tray
@@ -296,7 +318,7 @@ export component SettingsPage inherits Rectangle {
                 title: @tr("采样");
                 SettingRow {
                     title: @tr("刷新间隔");
-                    description: @tr("与顶栏的刷新间隔相同。暂停后数据与曲线都停止更新。");
+                    description: @tr("暂停后数据与曲线都停止更新；状态栏右侧的“暂停刷新”/“继续刷新”可以快速切换。");
                     SegmentedControl {
                         model: [@tr("0.5 秒"), @tr("1 秒"), @tr("2 秒"), @tr("暂停")];
                         current-index <=> root.interval-index;
